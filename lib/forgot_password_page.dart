@@ -1,5 +1,6 @@
 // forgot_password_page.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -10,10 +11,12 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final TextEditingController emailController = TextEditingController();
-  String message = '';
   bool isLoading = false;
+  String message = '';
 
-  void resetPassword() {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  void resetPassword() async {
     final email = emailController.text.trim();
 
     if (email.isEmpty) {
@@ -26,16 +29,32 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       message = '';
     });
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-          message = "If the email exists, you will receive a reset link! 📧";
-        });
-      }
-    });
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
 
-    // Real app → call Firebase Auth / backend
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        message = "If this email exists, you will receive a reset link! ";
+      });
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        isLoading = false;
+        if (e.code == 'user-not-found') {
+          message = 'No user found with this email ❌';
+        } else if (e.code == 'invalid-email') {
+          message = 'Invalid email ❌';
+        } else {
+          message = e.message ?? 'Failed to send reset link ❌';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        message = 'Something went wrong ❌';
+      });
+    }
   }
 
   @override
@@ -97,7 +116,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
                       inputField(
                         controller: emailController,
-                        hint: "Email or Username",
+                        hint: "Email",
                         icon: Icons.email_outlined,
                       ),
 
@@ -175,6 +194,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       width: double.infinity,
       child: TextField(
         controller: controller,
+        keyboardType: TextInputType.emailAddress,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           filled: true,

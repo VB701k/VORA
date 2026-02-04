@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "166854168177",
+    "project_id": "vora-001100",
+    "storage_bucket": "vora-001100.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:166854168177:android:d4af1266dd07d5f8d215d0",
+        "android_client_info": {
+          "package_name": "com.vora.sdgp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKq4bL2GUI3-5tAasAsHV_Sm-MslvWBe4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

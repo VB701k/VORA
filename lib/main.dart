@@ -1,11 +1,15 @@
 // main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'home_screen.dart';
 import 'signup_page.dart';
 import 'forgot_password_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -47,6 +51,8 @@ class _LoginPageState extends State<LoginPage> {
   String _message = '';
   bool _isLoading = false;
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -61,22 +67,32 @@ class _LoginPageState extends State<LoginPage> {
       _message = '';
     });
 
-    // Demo delay
-    await Future.delayed(const Duration(milliseconds: 1200));
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
 
-    if (!mounted) return;
-
-    setState(() => _isLoading = false);
-
-    if (email == "s1" && password == "s1") {
       if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
-    } else {
+    } on FirebaseAuthException catch (e) {
       setState(() {
-        _message = "Invalid credentials ❌";
+        _isLoading = false;
+        if (e.code == 'user-not-found') {
+          _message = "User not found ❌";
+        } else if (e.code == 'wrong-password') {
+          _message = "Wrong password ❌";
+        } else {
+          _message = e.message ?? "Login failed ❌";
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _message = "Something went wrong ❌";
       });
     }
   }
@@ -148,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
 
                       _buildInputField(
                         controller: _emailController,
-                        hint: "Email or Username",
+                        hint: "Email",
                         icon: Icons.email_outlined,
                       ),
 

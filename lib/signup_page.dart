@@ -1,6 +1,7 @@
 // signup_page.dart
 import 'package:flutter/material.dart';
-import 'home_screen.dart'; // ← if you want to go to Home after signup
+import 'package:firebase_auth/firebase_auth.dart';
+import 'home_screen.dart'; // Navigate here after signup
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -18,9 +19,12 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool hidePassword = true;
   bool hideConfirmPassword = true;
+  bool isLoading = false;
   String message = '';
 
-  void signUp() {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  void signUp() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final pass = passwordController.text.trim();
@@ -41,18 +45,50 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
-    // Demo: Accept all inputs
-    setState(() => message = "Account created! (demo mode) ✅");
-
-    // Auto login → HomeScreen
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      }
+    setState(() {
+      isLoading = true;
+      message = '';
     });
+
+    try {
+      // Firebase Auth signup
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: pass);
+
+      // Update display name
+      await userCredential.user?.updateDisplayName(name);
+
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        message = "Account created ✅";
+      });
+
+      // Navigate to HomeScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        isLoading = false;
+        if (e.code == 'email-already-in-use') {
+          message = 'Email already in use ❌';
+        } else if (e.code == 'invalid-email') {
+          message = 'Invalid email ❌';
+        } else if (e.code == 'weak-password') {
+          message = 'Password is too weak ❌';
+        } else {
+          message = e.message ?? 'Signup failed ❌';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        message = 'Something went wrong ❌';
+      });
+    }
   }
 
   @override
@@ -85,10 +121,11 @@ class _SignUpPageState extends State<SignUpPage> {
                     children: [
                       const SizedBox(height: 40),
 
-                      Flexible(
+                      // Logo
+                      SizedBox(
+                        height: 80,
                         child: Image.asset(
                           'assets/logo.png',
-                          height: 80,
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.timer,
@@ -118,6 +155,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 40),
 
+                      // Full Name
                       inputField(
                         controller: nameController,
                         hint: "Full Name",
@@ -126,14 +164,16 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
+                      // Email
                       inputField(
                         controller: emailController,
-                        hint: "Email or Username",
+                        hint: "Email",
                         icon: Icons.email_outlined,
                       ),
 
                       const SizedBox(height: 16),
 
+                      // Password
                       inputField(
                         controller: passwordController,
                         hint: "Password",
@@ -146,6 +186,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
+                      // Confirm Password
                       inputField(
                         controller: confirmPasswordController,
                         hint: "Confirm Password",
@@ -159,6 +200,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 24),
 
+                      // Message
                       Text(
                         message,
                         style: const TextStyle(
@@ -170,21 +212,31 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
+                      // Sign Up Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: signUp,
+                          onPressed: isLoading ? null : signUp,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF64B5F6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25),
                             ),
                           ),
-                          child: const Text(
-                            "Sign Up",
-                            style: TextStyle(fontSize: 18),
-                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : const Text(
+                                  "Sign Up",
+                                  style: TextStyle(fontSize: 18),
+                                ),
                         ),
                       ),
 
