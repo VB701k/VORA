@@ -19,7 +19,7 @@ This branch is for **stable, verified code only**. Please read carefully before 
 
 - **Personal branches**
   - Each developer should create their **own branch** for development.
-  - Branch names **must start with your name** (e.g., `arkshayan_feature1`).
+  - Branch names **must start with your name** (e.g., `arkshayan_b01`).
   - You can create as many branches as needed for your tasks.
   - Branches not following this naming rule may be removed.
 
@@ -62,15 +62,15 @@ This branch is for **stable, verified code only**. Please read carefully before 
 
 ## ⚠️ Important Rules
 
--     - Never push directly to dev.
+      - Never push directly to dev.
 
       - Follow branch naming rules for personal branches.
 
-      - Use pull requests for team branches (**`frontend_dev`** / **`backend_dev`**).
+      - Use pull requests for team branches ('frontend_dev' or 'backend_dev').
 
-      - Keep **`dev`** stable - it should always be safe to clone.
+      - Keep 'dev' stable - it should always be safe to clone.
 
-  ***
+---
 
 ## 📁 Project Structure
 
