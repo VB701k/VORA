@@ -1,16 +1,104 @@
-# sdgp
+# Project Branching & Contribution Guidelines
 
-A new Flutter project.
+Welcome to the **dev branch** of this project.  
+This branch is for **stable, verified code only**. Please read carefully before contributing.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🌟 Branch Purpose
 
-A few resources to get you started if this is your first Flutter project:
+- **`dev` branch**
+  - Stores **stable and verified code**.
+  - **Do NOT edit or push directly here.**
+  - This branch is only for **cloning** to get a reliable version of the project.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Team branches**
+  - **`frontend_dev`** → For frontend team’s final files.
+  - **`backend_dev`** → For backend team’s final files.
+  - Team members **create pull requests (PRs) to these branches** before merging into `dev`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Personal branches**
+  - Each developer should create their **own branch** for development.
+  - Branch names **must start with your name** (e.g., `arkshayan_feature1`).
+  - You can create as many branches as needed for your tasks.
+  - Branches not following this naming rule may be removed.
+
+---
+
+## 🚀 How to Work Safely
+
+1. **Clone the stable dev branch:**
+
+   ```bash
+   git clone -b dev https://github.com/USERNAME/REPO_NAME.git
+
+   ```
+
+2. **Create your personal branch:**
+
+   ```bash
+   git checkout -b yourname_feature
+
+   ```
+
+3. **Do your work on your branch:**
+   - Add, commit, and push only to your branch.
+
+   ```bash
+   git add .
+   git commit -m "Add new feature"
+   git push -u origin yourname_feature
+
+   ```
+
+4. **Team contribution**
+   - Frontend → PR to **`frontend_dev`**
+   - Backend → PR to **`backend_dev`**
+
+5. **Merging to dev:**
+   - Only after team branch review (**`frontend_dev`** or **`backend_dev`**) are changes merged into **`dev`**.
+
+---
+
+## ⚠️ Important Rules
+
+-     - Never push directly to dev.
+
+      - Follow branch naming rules for personal branches.
+
+      - Use pull requests for team branches (**`frontend_dev`** / **`backend_dev`**).
+
+      - Keep **`dev`** stable - it should always be safe to clone.
+
+  ***
+
+## 📁 Project Structure
+
+```bash
+sdgp/                     # Project root
+ ├── android/              # Android platform files
+ │   ├── app/
+ │   ├── gradle/           # ignored by .gitignore
+ │   ├── build/            # ignored
+ │   └── local.properties  # ignored
+ ├── ios/                  # iOS platform files
+ │   ├── Pods/             # ignored
+ │   └── Runner.xcworkspace
+ ├── lib/                  # Your main Flutter code (REQUIRED)
+ │   ├── main.dart
+ │   ├── home_screen.dart
+ ├── assets/               # Optional, include images/fonts/etc.
+ │   ├── images/
+ │   └── fonts/
+ ├── test/                 # Optional, for unit/widget tests
+ │   └── main_test.dart
+ ├── web/                  # Optional, for Flutter web
+ ├── windows/              # Optional, for Windows desktop
+ ├── macos/                # Optional, for MacOS desktop
+ ├── linux/                # Optional, for Linux desktop
+ ├── pubspec.yaml          # Required
+ ├── pubspec.lock          # Recommended
+ ├── .gitignore            # Required to ignore build files
+ ├── README.md             # Required
+ └── analysis_options.yaml # Optional
+```
