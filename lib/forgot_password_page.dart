@@ -20,7 +20,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final email = emailController.text.trim();
 
     if (email.isEmpty) {
-      setState(() => message = "Please enter your email ❌");
+      setState(() => message = "Please enter your email .");
       return;
     }
 
@@ -42,17 +42,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       setState(() {
         isLoading = false;
         if (e.code == 'user-not-found') {
-          message = 'No user found with this email ❌';
+          message = 'No user found with this email .';
         } else if (e.code == 'invalid-email') {
-          message = 'Invalid email ❌';
+          message = 'Invalid email .';
         } else {
-          message = e.message ?? 'Failed to send reset link ❌';
+          message = e.message ?? 'Failed to send reset link .';
         }
       });
     } catch (e) {
       setState(() {
         isLoading = false;
-        message = 'Something went wrong ❌';
+        message = 'Something went wrong .';
       });
     }
   }

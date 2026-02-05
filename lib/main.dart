@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'home_screen.dart';
 import 'signup_page.dart';
@@ -53,12 +54,58 @@ class _LoginPageState extends State<LoginPage> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  @override
+  void initState() {
+    FirebaseMessaging.instance.subscribeToTopic("allUsers");
+    super.initState();
+    requestNotificationPermission();
+    getDeviceToken();
+
+    // Listen to foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Received a message while in foreground!');
+      print('Message data: ${message.data}');
+      if (message.notification != null) {
+        print(
+          'Notification: ${message.notification!.title} - ${message.notification!.body}',
+        );
+      }
+    });
+  }
+
+  // ────────── Firebase Notification Permission ──────────
+  Future<void> requestNotificationPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('Notification permission GRANTED');
+    } else if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      print('Notification permission DENIED');
+    } else {
+      print('Notification permission NOT DETERMINED');
+    }
+  }
+
+  // ────────── Get FCM Device Token ──────────
+  Future<void> getDeviceToken() async {
+    String? token = await FirebaseMessaging.instance.getToken();
+    print('FCM Device Token: $token');
+    // Send this token to your backend if needed
+  }
+
+  // ────────── Login Function ──────────
   void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _message = "Please fill in all fields ❌");
+      setState(() => _message = "Please fill in all fields.");
       return;
     }
 
@@ -82,17 +129,17 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _isLoading = false;
         if (e.code == 'user-not-found') {
-          _message = "User not found ❌";
+          _message = "User not found.";
         } else if (e.code == 'wrong-password') {
-          _message = "Wrong password ❌";
+          _message = "Wrong password.";
         } else {
-          _message = e.message ?? "Login failed ❌";
+          _message = e.message ?? "Login failed.";
         }
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _message = "Something went wrong ❌";
+        _message = "Something went wrong.";
       });
     }
   }
@@ -328,6 +375,3 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 }
-
-
-//-

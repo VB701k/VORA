@@ -31,17 +31,17 @@ class _SignUpPageState extends State<SignUpPage> {
     final confirm = confirmPasswordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
-      setState(() => message = "Please fill all fields ❌");
+      setState(() => message = "Please fill all fields .");
       return;
     }
 
     if (pass != confirm) {
-      setState(() => message = "Passwords do not match ❌");
+      setState(() => message = "Passwords do not match .");
       return;
     }
 
     if (pass.length < 6) {
-      setState(() => message = "Password must be at least 6 characters ❌");
+      setState(() => message = "Password must be at least 6 characters .");
       return;
     }
 
@@ -62,7 +62,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
       setState(() {
         isLoading = false;
-        message = "Account created ✅";
+        message = "Account created .";
       });
 
       // Navigate to HomeScreen
@@ -74,19 +74,19 @@ class _SignUpPageState extends State<SignUpPage> {
       setState(() {
         isLoading = false;
         if (e.code == 'email-already-in-use') {
-          message = 'Email already in use ❌';
+          message = 'Email already in use .';
         } else if (e.code == 'invalid-email') {
-          message = 'Invalid email ❌';
+          message = 'Invalid email .';
         } else if (e.code == 'weak-password') {
-          message = 'Password is too weak ❌';
+          message = 'Password is too weak .';
         } else {
-          message = e.message ?? 'Signup failed ❌';
+          message = e.message ?? 'Signup failed .';
         }
       });
     } catch (e) {
       setState(() {
         isLoading = false;
-        message = 'Something went wrong ❌';
+        message = 'Something went wrong .';
       });
     }
   }

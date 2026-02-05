@@ -6,6 +6,10 @@ plugins {
         id("com.google.gms.google-services") // required for Firebase
 }
 
+dependencies {
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
+}
+
 android {
     namespace = "com.example.sdgp"
     compileSdk = flutter.compileSdkVersion
