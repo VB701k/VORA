@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'notification.dart';
 
 import 'home_screen.dart';
 import 'signup_page.dart';
@@ -10,6 +11,8 @@ import 'forgot_password_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService()
+      .init(); // 🔥 important notification file initialize
   await Firebase.initializeApp();
   runApp(const MyApp());
 }
@@ -65,10 +68,21 @@ class _LoginPageState extends State<LoginPage> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Received a message while in foreground!');
       print('Message data: ${message.data}');
-      if (message.notification != null) {
-        print(
-          'Notification: ${message.notification!.title} - ${message.notification!.body}',
-        );
+
+      final notification = message.notification;
+
+      if (notification != null) {
+        final title = notification.title ?? 'Notification';
+        final body = notification.body ?? '';
+
+        NotificationService().showNotification(
+          title: title,
+          body: body,
+        ); //  title is the title of the notification, body is the content of the notification------------------------------------------------------------------------------
+
+        print('Notification: $title - $body');
+      } else {
+        print('No notification payload (data-only message)');
       }
     });
   }

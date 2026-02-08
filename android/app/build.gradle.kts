@@ -8,6 +8,7 @@ plugins {
 
 dependencies {
     implementation("com.google.firebase:firebase-messaging:23.4.1")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 android {
@@ -16,6 +17,7 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
