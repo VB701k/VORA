@@ -1,7 +1,8 @@
 // signup_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_screen.dart'; // Navigate here after signup
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'main.dart'; // Navigate here after signup
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -24,24 +25,39 @@ class _SignUpPageState extends State<SignUpPage> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  void signUp() async {
+  //  FIXED: Firestore user data function
+  Future<void> addUserData({
+    required String uid,
+    required String name,
+    required String email,
+  }) async {
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  //  FIXED: Signup function
+  Future<void> signUp() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final pass = passwordController.text.trim();
     final confirm = confirmPasswordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
-      setState(() => message = "Please fill all fields .");
+      setState(() => message = "Please fill all fields.");
       return;
     }
 
     if (pass != confirm) {
-      setState(() => message = "Passwords do not match .");
+      setState(() => message = "Passwords do not match.");
       return;
     }
 
     if (pass.length < 6) {
-      setState(() => message = "Password must be at least 6 characters .");
+      setState(() => message = "Password must be at least 6 characters.");
       return;
     }
 
@@ -55,38 +71,43 @@ class _SignUpPageState extends State<SignUpPage> {
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: pass);
 
+      final user = userCredential.user!;
+
+      // Save user data in Firestore
+      await addUserData(uid: user.uid, name: name, email: email);
+
       // Update display name
-      await userCredential.user?.updateDisplayName(name);
+      await user.updateDisplayName(name);
 
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
-        message = "Account created .";
+        message = "Account created successfully.";
       });
 
-      // Navigate to HomeScreen
+      // Navigate to main app
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MyApp()),
       );
     } on FirebaseAuthException catch (e) {
       setState(() {
         isLoading = false;
         if (e.code == 'email-already-in-use') {
-          message = 'Email already in use .';
+          message = 'Email already in use.';
         } else if (e.code == 'invalid-email') {
-          message = 'Invalid email .';
+          message = 'Invalid email.';
         } else if (e.code == 'weak-password') {
-          message = 'Password is too weak .';
+          message = 'Password is too weak.';
         } else {
-          message = e.message ?? 'Signup failed .';
+          message = e.message ?? 'Signup failed.';
         }
       });
     } catch (e) {
       setState(() {
         isLoading = false;
-        message = 'Something went wrong .';
+        message = 'Something went wrong.';
       });
     }
   }
@@ -155,7 +176,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 40),
 
-                      // Full Name
                       inputField(
                         controller: nameController,
                         hint: "Full Name",
@@ -164,7 +184,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
-                      // Email
                       inputField(
                         controller: emailController,
                         hint: "Email",
@@ -173,7 +192,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
-                      // Password
                       inputField(
                         controller: passwordController,
                         hint: "Password",
@@ -186,7 +204,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
-                      // Confirm Password
                       inputField(
                         controller: confirmPasswordController,
                         hint: "Confirm Password",
@@ -200,7 +217,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 24),
 
-                      // Message
                       Text(
                         message,
                         style: const TextStyle(
@@ -212,7 +228,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
                       const SizedBox(height: 16),
 
-                      // Sign Up Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -225,13 +240,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                           child: isLoading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
                                 )
                               : const Text(
                                   "Sign Up",
@@ -282,32 +293,28 @@ class _SignUpPageState extends State<SignUpPage> {
     bool hidePassword = true,
     VoidCallback? toggle,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword ? hidePassword : false,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.15),
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: Icon(icon, color: Colors.white70),
-          suffixIcon: isPassword
-              ? IconButton(
-                  icon: Icon(
-                    hidePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.white70,
-                  ),
-                  onPressed: toggle,
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+    return TextField(
+      controller: controller,
+      obscureText: isPassword ? hidePassword : false,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.15),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: Icon(icon, color: Colors.white70),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  hidePassword ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white70,
+                ),
+                onPressed: toggle,
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
         ),
       ),
     );
