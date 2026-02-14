@@ -41,47 +41,6 @@ That is all. You do not need to open or modify other code files for your tab tas
 
 ---
 
-## Notification Service Guide
-
-This project already has a notification setup.
-
-### Files used
-
-- Local notification service: `lib/backend/services/notification_service.dart`
-- Firebase messaging service: `lib/backend/services/messaging_service.dart`
-- App startup init: `lib/main.dart`
-- Messaging init in UI: `lib/frontend/pages/login_page.dart`
-
-### Current flow in this project
-
-1. App starts.
-2. `main.dart` runs `await NotificationService().init();`
-3. In `login_page.dart`, `MessagingService.instance.initialize()` is called.
-4. When FCM message arrives in foreground, app shows local notification.
-
-### How to show a notification manually from your tab/page
-
-1. Add import in your file:
-
-```dart
-import 'package:sdgp/backend/services/notification_service.dart';
-```
-
-2. Call this method where needed (button click, timer finish, etc.):
-
-```dart
-await NotificationService().showNotification(
-  title: 'Pomodoro',
-  body: 'Your session is complete.',
-);
-```
-
-### Important notes
-
-- Do not remove `await NotificationService().init();` from `main.dart`.
-- Keep messaging initialization call in `login_page.dart`.
-- If notifications do not appear, first check app permission settings on the device.
-
 ## 🌟 Branch Purpose
 
 - **`dev` branch**
@@ -136,6 +95,269 @@ await NotificationService().showNotification(
       - Use pull requests for main branches ('dev' or 'main').
 
       - Keep 'dev' stable - it should always be safe to clone.
+
+---
+
+## Notification Service Guide
+
+This project already has a notification setup.
+
+### Files used
+
+- Local notification service: `lib/backend/services/notification_service.dart`
+- Firebase messaging service: `lib/backend/services/messaging_service.dart`
+- App startup init: `lib/main.dart`
+- Messaging init in UI: `lib/frontend/pages/login_page.dart`
+
+### Current flow in this project
+
+1. App starts.
+2. `main.dart` runs `await NotificationService().init();`
+3. In `login_page.dart`, `MessagingService.instance.initialize()` is called.
+4. When FCM message arrives in foreground, app shows local notification.
+
+### How to show a notification manually from your tab/page
+
+1. Add import in your file:
+
+```dart
+import 'package:sdgp/backend/services/notification_service.dart';
+```
+
+2. Call this method where needed (button click, timer finish, etc.):
+
+```dart
+await NotificationService().showNotification(
+  title: 'Pomodoro',
+  body: 'Your session is complete.',
+);
+```
+
+### Important notes
+
+- Do not remove `await NotificationService().init();` from `main.dart`.
+- Keep messaging initialization call in `login_page.dart`.
+- If notifications do not appear, first check app permission settings on the device.
+
+---
+
+## Firestore User Access System
+
+This project uses Firebase Authentication + Cloud Firestore with secure rules that restrict users to accessing only their own document.
+
+### Firestore Security Rules
+
+```txt
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+
+      // Allow user to read their own document
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+
+      // Allow user to create their own document
+      allow create: if request.auth != null
+                    && request.auth.uid == userId;
+
+      // Allow user to update their own document
+      allow update: if request.auth != null
+                    && request.auth.uid == userId;
+
+      // Prevent deleting
+      allow delete: if false;
+    }
+  }
+}
+```
+
+### System Behavior
+
+| Operation            | Allowed? | Condition         |
+| -------------------- | -------- | ----------------- |
+| View own data        | Yes      | Must be logged in |
+| View other user data | No       | Blocked           |
+| Create own document  | Yes      | UID must match    |
+| Update own document  | Yes      | UID must match    |
+| Delete document      | No       | Not allowed       |
+
+### Implementation Guide (Flutter)
+
+#### 1. Get Current Logged-in User
+
+Always required before Firestore operations.
+
+```dart
+final user = FirebaseAuth.instance.currentUser;
+
+if (user == null) {
+  print("No logged in user");
+  return;
+}
+```
+
+#### 2. Create User Document (After Signup)
+
+Creates Firestore document using the user's UID.
+
+```dart
+Future<void> createUserDocument() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .set({
+        'name': 'John Doe',
+        'email': user.email,
+        'age': 22,
+        'isAdmin': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+  print("User document created");
+}
+```
+
+Works because `doc(user.uid)` matches the security rule.
+
+#### 3. Read User Data (One-Time Read)
+
+```dart
+Future<void> readUserData() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+  if (doc.exists) {
+    print(doc.data());
+  } else {
+    print("User document not found");
+  }
+}
+```
+
+#### 4. Read User Data (Real-Time Stream)
+
+Recommended for profile screens.
+
+```dart
+StreamBuilder<DocumentSnapshot>(
+  stream: FirebaseFirestore.instance
+      .collection('users')
+      .doc(FirebaseAuth.instance.currentUser!.uid)
+      .snapshots(),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) {
+      return CircularProgressIndicator();
+    }
+
+    final data = snapshot.data!.data() as Map<String, dynamic>;
+
+    return Column(
+      children: [
+        Text("Name: ${data['name']}"),
+        Text("Email: ${data['email']}"),
+      ],
+    );
+  },
+);
+```
+
+#### 5. Update Single Field
+
+```dart
+Future<void> updateUserName(String newName) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .update({
+        'name': newName,
+      });
+
+  print("User updated");
+}
+```
+
+#### 6. Update Multiple Fields
+
+```dart
+Future<void> updateProfile() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .update({
+        'name': 'New Name',
+        'age': 25,
+        'isAdmin': true,
+      });
+}
+```
+
+### What Will Not Work
+
+Reading entire collection:
+
+```dart
+FirebaseFirestore.instance.collection('users').get();
+```
+
+Blocked by security rule.
+
+Reading other user document:
+
+```dart
+FirebaseFirestore.instance
+    .collection('users')
+    .doc("otherUID")
+    .get();
+```
+
+Blocked because UID does not match.
+
+Deleting user document:
+
+```dart
+FirebaseFirestore.instance
+    .collection('users')
+    .doc(user.uid)
+    .delete();
+```
+
+Blocked because:
+
+```txt
+allow delete: if false;
+```
+
+### Important Rule to Remember
+
+All Firestore operations must use:
+
+```dart
+doc(currentUser.uid)
+```
+
+If UID does not match, Firestore will throw:
+
+```txt
+PERMISSION_DENIED
+```
+
+---
 
 ---
 
