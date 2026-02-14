@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -9,9 +10,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const int totalSeconds = 25 * 60; // 25 minutes
-  int remainingSeconds = totalSeconds;
+  static const int totalSeconds = 25 * 60;
 
+  int remainingSeconds = totalSeconds;
   Timer? timer;
   bool isRunning = false;
 
@@ -19,13 +20,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (isRunning) {
       timer?.cancel();
     } else {
-      timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      timer = Timer.periodic(const Duration(seconds: 1), (activeTimer) {
         if (remainingSeconds > 0) {
           setState(() {
             remainingSeconds--;
           });
         } else {
-          timer.cancel();
+          activeTimer.cancel();
         }
       });
     }
@@ -46,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String formatTime(int seconds) {
     final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
     final secs = (seconds % 60).toString().padLeft(2, '0');
-    return "$minutes:$secs";
+    return '$minutes:$secs';
   }
 
   @override
@@ -60,13 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              "Pomodoro Timer",
+              'Pomodoro Timer',
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
-
             const SizedBox(height: 30),
-
-            // CIRCULAR TIMER
             Stack(
               alignment: Alignment.center,
               children: [
@@ -83,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Column(
                   children: [
                     const Text(
-                      "FOCUS",
+                      'FOCUS',
                       style: TextStyle(color: Color(0xFFC77DFF), fontSize: 14),
                     ),
                     Text(
@@ -98,34 +96,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 30),
-
-            // PLAY / PAUSE BUTTON
             FloatingActionButton(
               backgroundColor: const Color(0xFFC77DFF),
               onPressed: startPause,
               child: Icon(isRunning ? Icons.pause : Icons.play_arrow),
             ),
-
             const SizedBox(height: 40),
-
-            // RESET & SKIP
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton.icon(
                   onPressed: reset,
                   icon: const Icon(Icons.refresh),
-                  label: const Text("Reset"),
+                  label: const Text('Reset'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey.shade800,
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {}, // no function as requested
+                  onPressed: () {},
                   icon: const Icon(Icons.skip_next),
-                  label: const Text("Skip"),
+                  label: const Text('Skip'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey.shade800,
                   ),
@@ -136,5 +128,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
   }
 }

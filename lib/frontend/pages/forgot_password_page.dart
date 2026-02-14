@@ -1,6 +1,6 @@
-// forgot_password_page.dart
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:sdgp/backend/services/auth_service.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -11,16 +11,16 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final TextEditingController emailController = TextEditingController();
+  final AuthService _authService = AuthService.instance;
+
   bool isLoading = false;
   String message = '';
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  void resetPassword() async {
+  Future<void> resetPassword() async {
     final email = emailController.text.trim();
 
     if (email.isEmpty) {
-      setState(() => message = "Please enter your email .");
+      setState(() => message = 'Please enter your email.');
       return;
     }
 
@@ -30,29 +30,31 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      await _authService.sendPasswordResetEmail(email: email);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         isLoading = false;
-        message = "If this email exists, you will receive a reset link! ";
+        message = 'If this email exists, you will receive a reset link!';
       });
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (error) {
       setState(() {
         isLoading = false;
-        if (e.code == 'user-not-found') {
-          message = 'No user found with this email .';
-        } else if (e.code == 'invalid-email') {
-          message = 'Invalid email .';
+        if (error.code == 'user-not-found') {
+          message = 'No user found with this email.';
+        } else if (error.code == 'invalid-email') {
+          message = 'Invalid email.';
         } else {
-          message = e.message ?? 'Failed to send reset link .';
+          message = error.message ?? 'Failed to send reset link.';
         }
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
         isLoading = false;
-        message = 'Something went wrong .';
+        message = 'Something went wrong.';
       });
     }
   }
@@ -86,42 +88,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 20),
-
                       const Icon(
                         Icons.lock_reset_rounded,
                         size: 80,
                         color: Colors.lightBlueAccent,
                       ),
-
                       const SizedBox(height: 24),
-
                       const Text(
-                        "Reset Password",
+                        'Reset Password',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
                       const Text(
-                        "Enter your email to receive a reset link",
+                        'Enter your email to receive a reset link',
                         style: TextStyle(color: Colors.white70),
                         textAlign: TextAlign.center,
                       ),
-
                       const SizedBox(height: 40),
-
-                      inputField(
+                      _inputField(
                         controller: emailController,
-                        hint: "Email",
+                        hint: 'Email',
                         icon: Icons.email_outlined,
                       ),
-
                       const SizedBox(height: 24),
-
                       Text(
                         message,
                         style: const TextStyle(
@@ -130,9 +123,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-
                       const SizedBox(height: 16),
-
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -154,25 +145,22 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                   ),
                                 )
                               : const Text(
-                                  "Send Reset Link",
+                                  'Send Reset Link',
                                   style: TextStyle(fontSize: 17),
                                 ),
                         ),
                       ),
-
                       const SizedBox(height: 32),
-
                       TextButton(
                         onPressed: () => Navigator.pop(context),
                         child: const Text(
-                          "Back to Login",
+                          'Back to Login',
                           style: TextStyle(
                             color: Colors.lightBlueAccent,
                             fontSize: 16,
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -185,7 +173,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 
-  Widget inputField({
+  Widget _inputField({
     required TextEditingController controller,
     required String hint,
     required IconData icon,

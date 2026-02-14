@@ -1,0 +1,471 @@
+SDGP PROJECT - COMPLETE CODE EXPLANATION
+=======================================
+
+This document explains the current codebase structure and behavior in detail.
+Project path: lib/
+
+--------------------------------------------------
+1) HIGH-LEVEL ARCHITECTURE
+--------------------------------------------------
+
+You now have a clean separation:
+
+- lib/main.dart
+  App entry point and app-wide theme/bootstrap.
+
+- lib/frontend/pages/
+  UI screens and user interaction logic.
+  Files:
+  - login_page.dart
+  - signup_page.dart
+  - forgot_password_page.dart
+  - home_screen.dart
+
+- lib/backend/services/
+  Data/auth/notification service logic.
+  Files:
+  - auth_service.dart
+  - messaging_service.dart
+  - notification_service.dart
+
+Design pattern used:
+- UI pages call backend services.
+- Services talk to Firebase and platform notification APIs.
+- main.dart initializes app-level services and starts the first page.
+
+--------------------------------------------------
+2) APP STARTUP FLOW (main.dart)
+--------------------------------------------------
+
+File: lib/main.dart
+
+Imports:
+- firebase_core: needed before any Firebase feature is used.
+- flutter/material.dart: Flutter UI framework.
+- notification_service.dart: local notification setup.
+- login_page.dart: first page shown after startup.
+
+Function: main()
+- WidgetsFlutterBinding.ensureInitialized();
+  Ensures Flutter engine binding is ready before async startup work.
+- await Firebase.initializeApp();
+  Initializes Firebase SDK.
+- await NotificationService().init();
+  Initializes local notifications plugin and asks notification permissions.
+- runApp(const MyApp());
+  Starts the app widget tree.
+
+Class: MyApp extends StatelessWidget
+- Builds MaterialApp.
+- debugShowCheckedModeBanner = false.
+- Theme:
+  - fontFamily: Arial
+  - dark background
+  - seeded color scheme with purple accent
+  - Material 3 enabled
+- home = LoginPage
+
+Summary:
+- Startup order is correct: Flutter binding -> Firebase init -> local notification init -> app run.
+
+--------------------------------------------------
+3) BACKEND SERVICES LAYER
+--------------------------------------------------
+
+3.1) AuthService
+----------------
+File: lib/backend/services/auth_service.dart
+
+Purpose:
+- Centralize authentication and profile creation logic.
+- Keep Firebase/Auth/Firestore code out of UI pages.
+
+Structure:
+- Private constructor: AuthService._();
+- Singleton instance: static final AuthService instance = AuthService._();
+
+Private dependencies:
+- FirebaseAuth _auth
+- FirebaseFirestore _firestore
+
+Methods:
+
+1. Future<void> signIn({required email, required password})
+- Calls _auth.signInWithEmailAndPassword(...)
+- Throws FirebaseAuthException on failure.
+
+2. Future<void> signUpWithProfile({required name, email, password})
+- Creates auth user with email/password.
+- Checks returned user is not null.
+  - If null, throws FirebaseAuthException(code: internal-error)
+- Saves profile to Firestore collection `users` with document id = user uid.
+  Saved fields:
+  - uid
+  - name
+  - email
+  - createdAt (server timestamp)
+- Updates FirebaseAuth displayName to the provided name.
+
+3. Future<void> sendPasswordResetEmail({required email})
+- Calls Firebase Auth password reset email API.
+
+Benefits:
+- Reusable logic across multiple UI pages.
+- Easier maintenance/testing in one place.
+
+
+3.2) MessagingService
+---------------------
+File: lib/backend/services/messaging_service.dart
+
+Purpose:
+- Handle Firebase Cloud Messaging (FCM) app-side behavior.
+- Manage notification permission requests and foreground listeners.
+
+Structure:
+- Private constructor + singleton pattern.
+- FirebaseMessaging _messaging instance.
+- StreamSubscription<RemoteMessage>? _foregroundSubscription to avoid multiple listeners.
+
+Methods:
+
+1. Future<void> initialize()
+- Subscribes the device to topic: `allUsers`.
+- Requests notification permissions.
+- Logs FCM device token.
+- Attaches a foreground message listener (only once).
+  - If notification payload exists, shows local notification via NotificationService.
+  - If message is data-only, logs a debug line.
+
+2. Future<void> requestPermission()
+- Calls _messaging.requestPermission(alert, badge, sound = true).
+- Logs one of:
+  - GRANTED
+  - DENIED
+  - NOT DETERMINED
+
+3. Future<String?> getDeviceToken()
+- Returns FCM token from _messaging.getToken().
+
+4. Future<void> logDeviceToken()
+- Fetches token and prints it.
+
+5. void dispose()
+- Cancels foreground subscription and clears reference.
+- Useful if you later want explicit lifecycle cleanup.
+
+Notes:
+- Listener is initialized from LoginPage currently.
+- Because of singleton and null-check assignment, listener is attached once.
+
+
+3.3) NotificationService
+------------------------
+File: lib/backend/services/notification_service.dart
+
+Purpose:
+- Handle local notifications (showing notifications while app is foregrounded).
+
+Structure:
+- Singleton with private constructor.
+- Uses FlutterLocalNotificationsPlugin.
+
+Methods:
+
+1. Future<void> init()
+- Creates Android and iOS initialization settings.
+- Initializes plugin.
+- Requests notification permission on:
+  - Android (for modern versions requiring runtime notification permission)
+  - iOS
+
+2. Future<void> showNotification({required title, required body})
+- Defines Android notification channel details:
+  - id: default_channel
+  - name: Default Notifications
+  - high priority/importance
+- Defines iOS details.
+- Calls _notificationsPlugin.show(...) with unique id based on current epoch seconds.
+
+Summary:
+- Remote FCM foreground message -> MessagingService listener -> NotificationService local popup.
+
+--------------------------------------------------
+4) FRONTEND PAGES LAYER
+--------------------------------------------------
+
+4.1) LoginPage
+--------------
+File: lib/frontend/pages/login_page.dart
+
+Purpose:
+- User login form.
+- Entry point to signup and forgot password pages.
+- Starts messaging setup.
+
+State fields:
+- _emailController, _passwordController
+- _authService singleton
+- _messagingService singleton
+- _hidePassword: toggles password visibility
+- _isLoading: loading state during login
+- _message: error/info feedback shown on page
+
+Lifecycle:
+- initState() calls _initializeMessaging().
+- _initializeMessaging() awaits MessagingService.initialize() and catches/logs errors.
+
+Core method: _login()
+1. Reads trimmed email/password.
+2. Validates non-empty input.
+3. Sets loading true and clears message.
+4. Calls AuthService.signIn().
+5. On success:
+   - if widget still mounted, loading false
+   - navigates with pushReplacement to HomeScreen
+6. On FirebaseAuthException:
+   - maps common error codes to user-friendly text
+7. On unknown exception:
+   - sets generic error message
+
+UI composition:
+- Gradient background container
+- Scroll-safe + keyboard-safe layout
+- App logo image with timer icon fallback
+- Email and password text fields
+- Forgot Password text button -> pushes ForgotPasswordPage
+- Login button -> calls _login
+- Message text area for errors/status
+- Sign Up link -> pushes SignUpPage
+
+Helper widget:
+- _buildInputField(...)
+  - reusable styled TextField
+  - optional password hide/show toggle
+
+dispose():
+- Disposes both controllers.
+
+
+4.2) SignUpPage
+---------------
+File: lib/frontend/pages/signup_page.dart
+
+Purpose:
+- Register a new user.
+- Validate inputs before calling backend service.
+
+State fields:
+- name/email/password/confirm controllers
+- _authService singleton
+- hidePassword, hideConfirmPassword
+- isLoading
+- message
+
+Core method: signUp()
+1. Reads trimmed values.
+2. Validation checks:
+   - all fields required
+   - password == confirm
+   - min password length 6
+3. Sets loading true.
+4. Calls AuthService.signUpWithProfile(...)
+   - creates auth user
+   - stores Firestore profile
+5. On success:
+   - updates message
+   - Navigator.pop(context) back to login
+6. On FirebaseAuthException:
+   - maps specific code to user-friendly message
+7. On generic error:
+   - fallback error text
+
+UI composition:
+- Same visual style as login page.
+- Name, email, password, confirm password fields.
+- Sign Up button with loading spinner.
+- Bottom link "Login" pops back.
+
+Helper:
+- _inputField(...) reusable field with optional password toggle.
+
+dispose():
+- Disposes all 4 controllers.
+
+
+4.3) ForgotPasswordPage
+-----------------------
+File: lib/frontend/pages/forgot_password_page.dart
+
+Purpose:
+- Send password reset email.
+
+State fields:
+- emailController
+- _authService singleton
+- isLoading
+- message
+
+Core method: resetPassword()
+1. Reads trimmed email.
+2. Validates not empty.
+3. Sets loading true.
+4. Calls AuthService.sendPasswordResetEmail(email).
+5. On success:
+   - shows generic success text
+6. On FirebaseAuthException:
+   - maps user-not-found/invalid-email plus fallback
+7. On generic error:
+   - shows generic message
+
+UI composition:
+- Gradient background and centered form.
+- Reset icon, title and subtitle.
+- Email text input.
+- Send button with spinner.
+- Back to Login text button (Navigator.pop).
+
+Helper:
+- _inputField(...) with email keyboard type.
+
+dispose():
+- Disposes email controller.
+
+
+4.4) HomeScreen
+---------------
+File: lib/frontend/pages/home_screen.dart
+
+Purpose:
+- Pomodoro timer display and controls.
+
+State fields:
+- totalSeconds = 1500 (25 min)
+- remainingSeconds
+- Timer? timer
+- isRunning
+
+Methods:
+
+1. startPause()
+- If currently running: cancel timer.
+- If paused: starts Timer.periodic every second.
+  - decreases remainingSeconds until zero.
+  - cancels timer at zero.
+- Flips isRunning state.
+
+2. reset()
+- Cancels timer.
+- Sets remainingSeconds back to totalSeconds.
+- Sets isRunning false.
+
+3. formatTime(seconds)
+- Converts raw seconds to mm:ss string with leading zeros.
+
+UI:
+- Title text.
+- CircularProgressIndicator around timer readout.
+- FloatingActionButton for start/pause.
+- Reset and Skip buttons (Skip currently no logic).
+
+dispose():
+- Cancels timer to avoid leaks.
+
+--------------------------------------------------
+5) END-TO-END USER FLOW
+--------------------------------------------------
+
+1. App starts in main.dart.
+2. Firebase and notifications initialize.
+3. LoginPage opens.
+4. LoginPage initializes messaging listener + token logging.
+5. User can:
+   - Login -> HomeScreen
+   - Go to SignUpPage -> create account -> return login
+   - Go to ForgotPasswordPage -> request reset email -> return login
+6. While app is in foreground, incoming FCM notifications are shown as local notifications.
+
+--------------------------------------------------
+6) DEPENDENCIES (pubspec.yaml)
+--------------------------------------------------
+
+Core:
+- flutter
+
+Firebase/notifications:
+- firebase_core
+- firebase_auth
+- firebase_messaging
+- flutter_local_notifications
+- cloud_firestore
+
+Other:
+- cupertino_icons
+
+Assets:
+- assets/ folder included (logo image is used in UI).
+
+--------------------------------------------------
+7) TEST FILE STATUS
+--------------------------------------------------
+
+File: test/widget_test.dart
+
+Current test is the default Flutter counter test template.
+Your app no longer has a counter UI, so this test does not match the project behavior.
+
+Recommendation:
+- Replace it with tests for:
+  - Login page renders expected widgets
+  - Sign up validation errors
+  - Forgot password form behavior
+
+--------------------------------------------------
+8) IMPORTANT IMPLEMENTATION NOTES
+--------------------------------------------------
+
+1. Service singletons
+- AuthService, MessagingService, NotificationService are singleton-based.
+- This keeps one shared instance across app lifetime.
+
+2. Navigation pattern
+- Login success uses pushReplacement to prevent back navigation to login.
+- SignUp and ForgotPassword use push/pop transitions from login.
+
+3. Error messaging
+- Most FirebaseAuthException codes are mapped to friendly text.
+- Unknown errors use generic fallback text.
+
+4. Foreground notifications
+- FCM listener calls local notification API only when message.notification exists.
+- Data-only messages are not shown as local notification in current code.
+
+5. Resource cleanup
+- TextEditingControllers and Timer are disposed correctly.
+- MessagingService has dispose() available if you decide to manage its lifecycle manually.
+
+--------------------------------------------------
+9) QUICK MAINTENANCE GUIDE
+--------------------------------------------------
+
+Where to edit what:
+
+- UI style/layout changes:
+  lib/frontend/pages/*.dart
+
+- Login/signup/reset business logic:
+  lib/backend/services/auth_service.dart
+
+- Notification/FCM behavior:
+  lib/backend/services/messaging_service.dart
+  lib/backend/services/notification_service.dart
+
+- App startup/theme/first screen:
+  lib/main.dart
+
+If you want even cleaner architecture later:
+- Add models in lib/backend/models/
+- Add repositories in lib/backend/repositories/
+- Add reusable widgets in lib/frontend/widgets/
+
+END OF DOCUMENT
