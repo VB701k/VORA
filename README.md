@@ -143,7 +143,9 @@ await NotificationService().showNotification(
 
 ```bash
 
-sdgp - Copy
+
+
+sdgp
 ├─ .metadata
 ├─ analysis_options.yaml
 ├─ android
@@ -237,7 +239,6 @@ sdgp - Copy
 │  └─ settings.gradle.kts
 ├─ assets
 │  └─ logo.png
-├─ CODE_EXPLANATION.txt
 ├─ ios
 │  ├─ Flutter
 │  │  ├─ AppFrameworkInfo.plist
@@ -305,11 +306,17 @@ sdgp - Copy
 │  │     ├─ messaging_service.dart
 │  │     └─ notification_service.dart
 │  ├─ frontend
-│  │  └─ pages
-│  │     ├─ forgot_password_page.dart
-│  │     ├─ home_screen.dart
-│  │     ├─ login_page.dart
-│  │     └─ signup_page.dart
+│  │  ├─ pages
+│  │  │  ├─ forgot_password_page.dart
+│  │  │  ├─ home_page.dart
+│  │  │  ├─ login_page.dart
+│  │  │  └─ signup_page.dart
+│  │  └─ tabs
+│  │     ├─ chatbot_tab.dart
+│  │     ├─ feature_tab.dart
+│  │     ├─ home_tab.dart
+│  │     ├─ pomodoro_tab.dart
+│  │     └─ profile_tab.dart
 │  └─ main.dart
 ├─ linux
 │  ├─ CMakeLists.txt
