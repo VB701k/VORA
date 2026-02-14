@@ -11,6 +11,7 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController nameController = TextEditingController();
+  final TextEditingController ageController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
@@ -25,12 +26,23 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Future<void> signUp() async {
     final name = nameController.text.trim();
+    final ageText = ageController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final confirm = confirmPasswordController.text.trim();
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
+    if (name.isEmpty ||
+        ageText.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirm.isEmpty) {
       setState(() => message = 'Please fill all fields.');
+      return;
+    }
+
+    final age = int.tryParse(ageText);
+    if (age == null || age <= 0) {
+      setState(() => message = 'Please enter a valid age.');
       return;
     }
 
@@ -52,6 +64,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       await _authService.signUpWithProfile(
         name: name,
+        age: age,
         email: email,
         password: password,
       );
@@ -150,9 +163,17 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                       const SizedBox(height: 16),
                       _inputField(
+                        controller: ageController,
+                        hint: 'Age',
+                        icon: Icons.cake_outlined,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      _inputField(
                         controller: emailController,
                         hint: 'Email',
                         icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 16),
                       _inputField(
@@ -249,10 +270,12 @@ class _SignUpPageState extends State<SignUpPage> {
     bool isPassword = false,
     bool hidePassword = true,
     VoidCallback? toggle,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
       obscureText: isPassword ? hidePassword : false,
+      keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         filled: true,
@@ -280,6 +303,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   void dispose() {
     nameController.dispose();
+    ageController.dispose();
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();

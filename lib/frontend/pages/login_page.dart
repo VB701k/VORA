@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sdgp/backend/services/auth_service.dart';
 import 'package:sdgp/backend/services/messaging_service.dart';
 import 'package:sdgp/frontend/pages/forgot_password_page.dart';
-import 'package:sdgp/frontend/pages/home_screen.dart';
+import 'package:sdgp/frontend/pages/home_page.dart';
 import 'package:sdgp/frontend/pages/signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -64,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } on FirebaseAuthException catch (error) {
       setState(() {

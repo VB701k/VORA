@@ -5,6 +5,83 @@ This branch is for **stable, verified code only**. Please read carefully before 
 
 ---
 
+## Most Important: Where to Start Coding (Frontend)
+
+All frontend members only need to edit their own tab file in `lib/frontend/tabs/`.
+
+### Fixed file (do not change)
+
+- `lib/frontend/pages/home_page.dart`
+
+`home_page.dart` already has:
+
+- Bottom navigation bar
+- Tab order
+- All tab imports
+- `_pages` list mapping
+
+### Your tab files
+
+- Home: `lib/frontend/tabs/home_tab.dart`
+- AI Chatbot: `lib/frontend/tabs/chatbot_tab.dart`
+- Pomodoro: `lib/frontend/tabs/pomodoro_tab.dart`
+- Feature: `lib/frontend/tabs/feature_tab.dart`
+- Profile: `lib/frontend/tabs/profile_tab.dart`
+
+### workflow
+
+1. Open your assigned tab file only.
+2. Replace sample UI/data inside that file.
+3. Keep the class name the same (example: `PomodoroTab`, `HomeTab`).
+4. Do not rename the file.
+5. Do not edit other tab files.
+6. Do not edit `home_page.dart`.
+
+That is all. You do not need to open or modify other code files for your tab task.
+
+---
+
+## Notification Service Guide
+
+This project already has a notification setup.
+
+### Files used
+
+- Local notification service: `lib/backend/services/notification_service.dart`
+- Firebase messaging service: `lib/backend/services/messaging_service.dart`
+- App startup init: `lib/main.dart`
+- Messaging init in UI: `lib/frontend/pages/login_page.dart`
+
+### Current flow in this project
+
+1. App starts.
+2. `main.dart` runs `await NotificationService().init();`
+3. In `login_page.dart`, `MessagingService.instance.initialize()` is called.
+4. When FCM message arrives in foreground, app shows local notification.
+
+### How to show a notification manually from your tab/page
+
+1. Add import in your file:
+
+```dart
+import 'package:sdgp/backend/services/notification_service.dart';
+```
+
+2. Call this method where needed (button click, timer finish, etc.):
+
+```dart
+await NotificationService().showNotification(
+  title: 'Pomodoro',
+  body: 'Your session is complete.',
+);
+```
+
+### Important notes
+
+- Do not remove `await NotificationService().init();` from `main.dart`.
+- Keep messaging initialization call in `login_page.dart`.
+- If notifications do not appear, first check app permission settings on the device.
+
 ## 🌟 Branch Purpose
 
 - **`dev` branch**
@@ -12,16 +89,10 @@ This branch is for **stable, verified code only**. Please read carefully before 
   - **Do NOT edit or push directly here.**
   - This branch is only for **cloning** to get a reliable version of the project.
 
-- **Team branches**
-  - **`frontend_dev`** → For frontend team’s final files.
-  - **`backend_dev`** → For backend team’s final files.
-  - Team members **create pull requests (PRs) to these branches** before merging into `dev`.
-
 - **Personal branches**
   - Each developer should create their **own branch** for development.
   - Branch names **must start with your name** (e.g., `arkshayan_b01`).
   - You can create as many branches as needed for your tasks.
-  - Branches not following this naming rule may be removed.
 
 ---
 
@@ -30,7 +101,7 @@ This branch is for **stable, verified code only**. Please read carefully before 
 1. **Clone the stable dev branch:**
 
    ```bash
-   git clone -b dev https://github.com/USERNAME/REPO_NAME.git
+   git clone -b dev https://github.com/VB701k/VORA.git
 
    ```
 
@@ -51,22 +122,18 @@ This branch is for **stable, verified code only**. Please read carefully before 
 
    ```
 
-4. **Team contribution**
-   - Frontend → PR to **`frontend_dev`**
-   - Backend → PR to **`backend_dev`**
-
-5. **Merging to dev:**
-   - Only after team branch review (**`frontend_dev`** or **`backend_dev`**) are changes merged into **`dev`**.
+4. **Merging to dev:**
+   - Only after branch review, changes will be merged into **`dev`**.
 
 ---
 
 ## ⚠️ Important Rules
 
-      - Never push directly to dev.
+      - Never push directly to dev/main.
 
       - Follow branch naming rules for personal branches.
 
-      - Use pull requests for team branches ('frontend_dev' or 'backend_dev').
+      - Use pull requests for main branches ('dev' or 'main').
 
       - Keep 'dev' stable - it should always be safe to clone.
 

@@ -15,6 +15,7 @@ class AuthService {
 
   Future<void> signUpWithProfile({
     required String name,
+    required int age,
     required String email,
     required String password,
   }) async {
@@ -34,6 +35,7 @@ class AuthService {
     await _firestore.collection('users').doc(user.uid).set({
       'uid': user.uid,
       'name': name,
+      'age': age,
       'email': email,
       'createdAt': FieldValue.serverTimestamp(),
     });
