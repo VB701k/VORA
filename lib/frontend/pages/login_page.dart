@@ -1,92 +1,86 @@
-// signup_page.dart
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_screen.dart'; // Navigate here after signup
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:sdgp/backend/services/auth_service.dart';
+import 'package:sdgp/backend/services/messaging_service.dart';
+import 'package:sdgp/frontend/pages/forgot_password_page.dart';
+import 'package:sdgp/frontend/pages/home_page.dart';
+import 'package:sdgp/frontend/pages/signup_page.dart';
 
-class SignUpPage extends StatefulWidget {
-  const SignUpPage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<SignUpPage> createState() => _SignUpPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _SignUpPageState extends State<SignUpPage> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+class _LoginPageState extends State<LoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-  bool hidePassword = true;
-  bool hideConfirmPassword = true;
-  bool isLoading = false;
-  String message = '';
+  final AuthService _authService = AuthService.instance;
+  final MessagingService _messagingService = MessagingService.instance;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _hidePassword = true;
+  bool _isLoading = false;
+  String _message = '';
 
-  void signUp() async {
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
-    final pass = passwordController.text.trim();
-    final confirm = confirmPasswordController.text.trim();
+  @override
+  void initState() {
+    super.initState();
+    _initializeMessaging();
+  }
 
-    if (name.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
-      setState(() => message = "Please fill all fields ❌");
-      return;
+  Future<void> _initializeMessaging() async {
+    try {
+      await _messagingService.initialize();
+    } catch (error) {
+      debugPrint('Messaging initialization failed: $error');
     }
+  }
 
-    if (pass != confirm) {
-      setState(() => message = "Passwords do not match ❌");
-      return;
-    }
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (pass.length < 6) {
-      setState(() => message = "Password must be at least 6 characters ❌");
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _message = 'Please fill in all fields.');
       return;
     }
 
     setState(() {
-      isLoading = true;
-      message = '';
+      _isLoading = true;
+      _message = '';
     });
 
     try {
-      // Firebase Auth signup
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: pass);
+      await _authService.signIn(email: email, password: password);
 
-      // Update display name
-      await userCredential.user?.updateDisplayName(name);
+      if (!mounted) {
+        return;
+      }
 
-      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-      setState(() {
-        isLoading = false;
-        message = "Account created ✅";
-      });
-
-      // Navigate to HomeScreen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (error) {
       setState(() {
-        isLoading = false;
-        if (e.code == 'email-already-in-use') {
-          message = 'Email already in use ❌';
-        } else if (e.code == 'invalid-email') {
-          message = 'Invalid email ❌';
-        } else if (e.code == 'weak-password') {
-          message = 'Password is too weak ❌';
+        _isLoading = false;
+        if (error.code == 'user-not-found') {
+          _message = 'User not found.';
+        } else if (error.code == 'wrong-password') {
+          _message = 'Wrong password.';
         } else {
-          message = e.message ?? 'Signup failed ❌';
+          _message = error.message ?? 'Login failed.';
         }
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
-        isLoading = false;
-        message = 'Something went wrong ❌';
+        _isLoading = false;
+        _message = 'Something went wrong.';
       });
     }
   }
@@ -119,112 +113,85 @@ class _SignUpPageState extends State<SignUpPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 40),
-
-                      // Logo
-                      SizedBox(
-                        height: 80,
+                      const SizedBox(height: 20),
+                      Flexible(
                         child: Image.asset(
                           'assets/logo.png',
+                          height: 80,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.timer,
-                            size: 80,
-                            color: Color(0xFFC77DFF),
-                          ),
+                          errorBuilder: (_, _, _) {
+                            return const Icon(
+                              Icons.timer,
+                              size: 80,
+                              color: Color(0xFFC77DFF),
+                            );
+                          },
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
                       const Text(
-                        "Create Account",
+                        'Welcome Back',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
                       const Text(
-                        "Sign up to get started",
+                        'Log in to continue',
                         style: TextStyle(color: Colors.white70),
                       ),
-
                       const SizedBox(height: 40),
-
-                      // Full Name
-                      inputField(
-                        controller: nameController,
-                        hint: "Full Name",
-                        icon: Icons.person_outline,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Email
-                      inputField(
-                        controller: emailController,
-                        hint: "Email",
+                      _buildInputField(
+                        controller: _emailController,
+                        hint: 'Email',
                         icon: Icons.email_outlined,
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Password
-                      inputField(
-                        controller: passwordController,
-                        hint: "Password",
+                      _buildInputField(
+                        controller: _passwordController,
+                        hint: 'Password',
                         icon: Icons.lock_outline,
                         isPassword: true,
-                        hidePassword: hidePassword,
-                        toggle: () =>
-                            setState(() => hidePassword = !hidePassword),
+                        hidePassword: _hidePassword,
+                        onToggleVisibility: () {
+                          setState(() => _hidePassword = !_hidePassword);
+                        },
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // Confirm Password
-                      inputField(
-                        controller: confirmPasswordController,
-                        hint: "Confirm Password",
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                        hidePassword: hideConfirmPassword,
-                        toggle: () => setState(
-                          () => hideConfirmPassword = !hideConfirmPassword,
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(color: Colors.lightBlueAccent),
+                          ),
                         ),
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // Message
-                      Text(
-                        message,
-                        style: const TextStyle(
-                          color: Colors.orangeAccent,
-                          fontSize: 15,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
                       const SizedBox(height: 16),
-
-                      // Sign Up Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: isLoading ? null : signUp,
+                          onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF64B5F6),
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25),
                             ),
+                            elevation: 0,
                           ),
-                          child: isLoading
+                          child: _isLoading
                               ? const SizedBox(
                                   height: 24,
                                   width: 24,
@@ -234,25 +201,39 @@ class _SignUpPageState extends State<SignUpPage> {
                                   ),
                                 )
                               : const Text(
-                                  "Sign Up",
-                                  style: TextStyle(fontSize: 18),
+                                  'Login',
+                                  style: TextStyle(fontSize: 17),
                                 ),
                         ),
                       ),
-
-                      const SizedBox(height: 24),
-
+                      const SizedBox(height: 20),
+                      Text(
+                        _message,
+                        style: const TextStyle(
+                          color: Colors.orangeAccent,
+                          fontSize: 15,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            "Already have an account? ",
+                            "Don't have an account? ",
                             style: TextStyle(color: Colors.white70),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.pop(context),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SignUpPage(),
+                                ),
+                              );
+                            },
                             child: const Text(
-                              "Login",
+                              'Sign Up',
                               style: TextStyle(
                                 color: Colors.lightBlueAccent,
                                 fontWeight: FontWeight.w600,
@@ -261,7 +242,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -274,23 +254,23 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget inputField({
+  Widget _buildInputField({
     required TextEditingController controller,
     required String hint,
     required IconData icon,
     bool isPassword = false,
     bool hidePassword = true,
-    VoidCallback? toggle,
+    VoidCallback? onToggleVisibility,
   }) {
     return SizedBox(
       width: double.infinity,
       child: TextField(
         controller: controller,
-        obscureText: isPassword ? hidePassword : false,
+        obscureText: isPassword && hidePassword,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white.withOpacity(0.15),
+          fillColor: Colors.white.withOpacity(0.13),
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white54),
           prefixIcon: Icon(icon, color: Colors.white70),
@@ -300,7 +280,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     hidePassword ? Icons.visibility_off : Icons.visibility,
                     color: Colors.white70,
                   ),
-                  onPressed: toggle,
+                  onPressed: onToggleVisibility,
                 )
               : null,
           border: OutlineInputBorder(
@@ -315,10 +295,8 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 }
