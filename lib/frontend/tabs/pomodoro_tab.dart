@@ -103,49 +103,72 @@ class _PomodoroTabState extends State<PomodoroTab> {
                     width: 260,
                     height: 260,
                     child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // background ring
-                        SizedBox(
-                          width: 260,
-                          height: 260,
-                        child: CircularProgressIndicator(
-                          value: 1,
-                          strokeWidth: 10,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withOpacity(0.10),
-                          ),
-                        ),
-                        ),
+  alignment: Alignment.center,
+  children: [
+    // ✅ rotate only the rings
+    Transform.rotate(
+      angle: -3.14159 / 2,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 260,
+            height: 260,
+            child: CircularProgressIndicator(
+              value: 1,
+              strokeWidth: 10,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Colors.white.withOpacity(0.10),
+              ),
+            ),
+          ),
+          const SizedBox(width: 260, height: 260),
+          SizedBox(
+            width: 260,
+            height: 260,
+            child: CircularProgressIndicator(
+              value: _progress,
+              strokeWidth: 10,
+              strokeCap: StrokeCap.round,
+              valueColor: const AlwaysStoppedAnimation<Color>(primary),
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+        ],
+      ),
+    ),
 
-                        // progress ring (static)
-                        SizedBox(
-                          width: 260,
-                          height: 260,
-                          child: CircularProgressIndicator(
-                            value: 1,
-                            strokeWidth: 10,
-                            strokeCap: StrokeCap.round,
-                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white.withOpacity(0.10),
-                            ),
-                          ),
-                        ),
-
-                         Text(
-                          _formatTime(_secondsLeft),
-                          style: const TextStyle(
-                            fontSize: 44,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+    // ✅ text stays normal (NOT rotated)
+    Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _formatTime(_secondsLeft),
+          style: const TextStyle(
+            fontSize: 44,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          "Focus Time",
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          "25 min",
+          style: TextStyle(color: Colors.white38, fontSize: 12),
+        ),
+      ],
+    ),
+  ],
+),
                 ),
               ),
+            ),
+            
 
               // 🔵 Buttons section
               Row(
@@ -174,6 +197,7 @@ class _PomodoroTabState extends State<PomodoroTab> {
                   ),
                 ],
               ),
+            
             const SizedBox(height: 12),
 
               SizedBox(
