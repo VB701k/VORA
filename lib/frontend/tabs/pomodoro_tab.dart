@@ -106,11 +106,7 @@ class _PomodoroTabState extends State<PomodoroTab> {
   alignment: Alignment.center,
   children: [
     // ✅ rotate only the rings
-    Transform.rotate(
-      angle: -3.14159 / 2,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
+    
           SizedBox(
             width: 260,
             height: 260,
@@ -124,7 +120,7 @@ class _PomodoroTabState extends State<PomodoroTab> {
           ),
           const SizedBox(width: 260, height: 260),
           Transform.rotate(
-          angle: 3.14159 / 2,
+          angle: 0,
           child: SizedBox(
             width: 260,
             height: 260,
@@ -137,9 +133,6 @@ class _PomodoroTabState extends State<PomodoroTab> {
             ),
           ),
           ),
-        ],
-      ),
-    ),
 
     // ✅ text stays normal (NOT rotated)
     Column(
