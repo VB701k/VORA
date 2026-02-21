@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:sdgp/frontend/tabs/chatbot_tab.dart';
-import 'package:sdgp/frontend/tabs/feature_tab.dart';
-import 'package:sdgp/frontend/tabs/home_tab.dart';
-import 'package:sdgp/frontend/tabs/pomodoro_tab.dart';
-import 'package:sdgp/frontend/tabs/profile_tab.dart';
+import 'package:sdgp/frontend/main_screens/search_screen.dart';
+import 'package:sdgp/frontend/main_screens/home_screen.dart';
+import 'package:sdgp/frontend/main_screens/ai_screen.dart';
+import 'package:sdgp/frontend/main_screens/profile_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,11 +17,10 @@ class _HomePageState extends State<HomePage> {
 
   // List of pages for each tab
   final List<Widget> _pages = const [
-    HomeTab(),
-    ChatbotTab(),
-    PomodoroTab(),
-    FeatureTab(),
-    ProfileTab(),
+    HomeScreen(),
+    SearchScreen(),
+    AiScreen(),
+    ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -40,19 +38,13 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
+        backgroundColor: Color(0xFF172B35),
+        selectedItemColor: Color(0xFF2EC4F1),
+        unselectedItemColor: Color(0xFF9FB4C4),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy),
-            label: "AI Chatbot",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.timer), label: "Pomodoro"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: "Feature",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: "AI"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
