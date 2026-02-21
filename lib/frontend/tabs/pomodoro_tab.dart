@@ -123,7 +123,9 @@ class _PomodoroTabState extends State<PomodoroTab> {
             ),
           ),
           const SizedBox(width: 260, height: 260),
-          SizedBox(
+          Transform.rotate(
+          angle: 3.14159 / 2,
+          child: SizedBox(
             width: 260,
             height: 260,
             child: CircularProgressIndicator(
@@ -133,6 +135,7 @@ class _PomodoroTabState extends State<PomodoroTab> {
               valueColor: const AlwaysStoppedAnimation<Color>(primary),
               backgroundColor: Colors.transparent,
             ),
+          ),
           ),
         ],
       ),
