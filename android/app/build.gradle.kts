@@ -6,12 +6,18 @@ plugins {
         id("com.google.gms.google-services") // required for Firebase
 }
 
+dependencies {
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
 android {
     namespace = "com.example.sdgp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
