@@ -14,6 +14,11 @@ dependencies:
   # Firebase packages
   firebase_core: ^4.4.0
   firebase_auth: ^6.1.4
+  cloud_firestore: ^6.1.2
+  firebase_storage: ^13.0.6
+  
+  # State management 
+  provider: ^6.1.2
 
   cupertino_icons: ^1.0.8
 
