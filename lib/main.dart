@@ -30,6 +30,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
-// sample push 
