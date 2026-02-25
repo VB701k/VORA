@@ -13,49 +13,77 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTopBar(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
 
           _buildSectionTitle("QUICK ACCESS"),
           const SizedBox(height: 16),
 
           _buildQuickAccessGrid(),
-          const SizedBox(height: 40),
+          const SizedBox(height: 28),
+
+          //shortcuts
+          _buildSectionTitle("SHORTCUTS"),
+          const SizedBox(height: 16),
+
+          _buildShortcutsGrid(context),
+          const SizedBox(height: 28),
 
           _buildSectionTitle("RECENT"),
           const SizedBox(height: 16),
 
           _buildRecentSection(),
-          const SizedBox(height: 80),
+          const SizedBox(height: 90),
         ],
       ),
     );
   }
 
-  // Top Bar
+  // top bar
   Widget _buildTopBar() {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Icon(Icons.notifications_none_rounded, color: text),
-        Text(
-          "VORA Student",
-          style: TextStyle(
-            color: text,
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
+    return SizedBox(
+      height: 44,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_none_rounded, color: text),
+              splashRadius: 22,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
           ),
-        ),
-        Icon(Icons.settings_outlined, color: text),
-      ],
+          const Text(
+            "VORA Student",
+            style: TextStyle(
+              color: text,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.settings_outlined, color: text),
+              splashRadius: 22,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  //  Section Title
+  // Section Title
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -67,7 +95,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  //  Quick Access Grid
+  // Quick Access Grid
   Widget _buildQuickAccessGrid() {
     return GridView.count(
       crossAxisCount: 2,
@@ -81,6 +109,49 @@ class HomeScreen extends StatelessWidget {
         _QuickTile(title: "Pomodoro", icon: Icons.timer_rounded),
         _QuickTile(title: "Mental Wellness", icon: Icons.spa_rounded),
         _QuickTile(title: "Weekly Analytics", icon: Icons.bar_chart_rounded),
+      ],
+    );
+  }
+
+  // Shortcuts Grid
+  Widget _buildShortcutsGrid(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 14,
+      childAspectRatio: 2.6,
+      children: [
+        _ShortcutTile(
+          title: "Calendar",
+          icon: Icons.calendar_month_rounded,
+          onTap: () {
+            //when the calendar tile is clicked, navigate to calendar screen here
+          },
+        ),
+        _ShortcutTile(
+          title: "Task Manager",
+          icon: Icons.checklist_rounded,
+          onTap: () {
+            // navigate to task manager
+          },
+        ),
+        _ShortcutTile(
+          title: "Motivation",
+          icon: Icons.auto_awesome_rounded,
+          onTap: () {
+            //Navigate to Motivation screen
+          },
+        ),
+        _ShortcutTile(
+          title: "Add",
+          icon: Icons.add_rounded,
+          isAddButton: true,
+          onTap: () {
+            // Add shortcut
+          },
+        ),
       ],
     );
   }
@@ -139,6 +210,75 @@ class _QuickTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ✅ NEW: Shortcut Tile (button-like)
+class _ShortcutTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isAddButton;
+
+  const _ShortcutTile({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+    this.isAddButton = false,
+  });
+
+  static const Color card = HomeScreen.card;
+  static const Color accent = HomeScreen.accent;
+  static const Color text = HomeScreen.text;
+  static const Color textDim = HomeScreen.textDim;
+  static const Color stroke = HomeScreen.stroke;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: stroke),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isAddButton ? stroke : const Color(0xFF1C3441),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: isAddButton ? textDim : accent,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isAddButton ? textDim : text,
+                  fontWeight: FontWeight.w800,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isAddButton ? stroke : textDim,
+            ),
+          ],
+        ),
       ),
     );
   }
