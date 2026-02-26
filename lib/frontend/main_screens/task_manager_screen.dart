@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'coursework_breakdown_screen.dart';
 
 class TaskManagerScreen extends StatelessWidget {
   const TaskManagerScreen({super.key});
@@ -23,21 +24,24 @@ class TaskManagerScreen extends StatelessWidget {
           IconButton(onPressed: () {}, icon: const Icon(Icons.tune_rounded)),
         ],
       ),
+
+      // ✅ + button -> opens CW Breakdown screen
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2D5BFF),
         onPressed: () {
-          // Later you can connect Coursework Breakdown here
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Coursework Breakdown not connected yet"),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CourseworkBreakdownScreen(),
             ),
           );
         },
         child: const Icon(Icons.add, size: 28),
       ),
+
       body: const Center(
         child: Text(
-          "✅ Task Manager Screen Connected!\n\n(We will connect real tasks later)",
+          "Task Manager Screen\n\nPress + to add Coursework Breakdown",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white, fontSize: 16),
         ),
