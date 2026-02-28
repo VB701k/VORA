@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-// ✅ IMPORTANT:
-// Your repo currently doesn't have TaskStore/AppTask in the screenshot.
-// So I removed TaskStore import to avoid errors.
-// Later, when you add TaskStore, I can re-connect "Add to my Task".
+import 'package:sdgp/backend/services/task_firestore_service.dart';
 
 class CourseworkBreakdownScreen extends StatefulWidget {
   const CourseworkBreakdownScreen({super.key});
@@ -21,17 +17,21 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
 
   int get _parts => int.tryParse(_partsCtrl.text.trim()) ?? 1;
 
+  // If parts == 1 OR same deadline for all parts:
   DateTime? _deadline;
 
+  // If parts > 1 and different deadlines:
   bool _sameDeadlineForAll = true;
   List<DateTime?> _partDeadlines = [];
 
   bool _enableDeadlineNotifications = true;
 
+  // UI-only plan
   List<_PlanItem> _plan = [];
 
   final _df = DateFormat('EEE, MMM d • h:mm a');
 
+  // ---- COLORS ----
   static const _bg = Color(0xFF062B3A);
   static const _card = Color(0xFF083445);
   static const _stroke = Color(0xFF2C5B6A);
@@ -145,6 +145,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
 
     final p = _parts;
 
+    // Deadlines per part
     final List<DateTime> deadlines = [];
     if (p == 1) {
       deadlines.add(_deadline!);
@@ -177,17 +178,34 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
     return 'Write Section ${i + 1}';
   }
 
-  // ✅ For now: just go back (later we connect TaskStore)
-  void _addToMyTask() {
+  // ✅ Option 2: Save to Firestore
+  Future<void> _addToMyTask() async {
     if (_plan.isEmpty) {
       _toast('Generate plan first');
       return;
     }
 
+    final now = DateTime.now();
+
+    for (final p in _plan) {
+      final id = '${now.microsecondsSinceEpoch}_${p.title}';
+
+      await TaskFirestoreService.instance.addTask(
+        id: id,
+        title: p.title,
+        subtitle: _titleCtrl.text.trim().isEmpty
+            ? "Coursework"
+            : _titleCtrl.text.trim(),
+        dueAt: p.due,
+        source: "coursework",
+      );
+    }
+
+    if (!mounted) return;
     _toast(
       _enableDeadlineNotifications
-          ? 'Saved (notifications ON) — TaskStore later'
-          : 'Saved (notifications OFF) — TaskStore later',
+          ? "Saved to Task Manager ✅ (notifications ON)"
+          : "Saved to Task Manager ✅ (notifications OFF)",
     );
 
     Navigator.pop(context);
@@ -246,6 +264,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Title
                 const Text(
                   'Coursework Title',
                   style: TextStyle(color: _white, fontWeight: FontWeight.w600),
@@ -258,8 +277,10 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Title required' : null,
                 ),
+
                 const SizedBox(height: 14),
 
+                // Parts
                 const Text(
                   'Number of Parts',
                   style: TextStyle(color: _white, fontWeight: FontWeight.w600),
@@ -286,6 +307,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
 
                 const SizedBox(height: 14),
 
+                // DEADLINE FLOW
                 if (_parts == 1) ...[
                   const Text(
                     'Deadline',
@@ -306,6 +328,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
                     },
                   ),
                 ] else ...[
+                  // Ask same/different
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -376,6 +399,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
 
                 const SizedBox(height: 10),
 
+                // Notifications toggle (UI only)
                 Container(
                   decoration: BoxDecoration(
                     color: _card,
@@ -395,7 +419,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
                       ),
                     ),
                     subtitle: const Text(
-                      'UI only (TaskStore later)',
+                      'UI only (backend later)',
                       style: TextStyle(color: _muted),
                     ),
                   ),
@@ -403,6 +427,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
 
                 const SizedBox(height: 14),
 
+                // Break button
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
@@ -471,6 +496,8 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
     );
   }
 }
+
+// ---------- UI pieces ----------
 
 class _DeadlineButton extends StatelessWidget {
   final String text;
