@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'task_manager_screen.dart';
+import 'package:sdgp/frontend/main_screens/task_manager_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
