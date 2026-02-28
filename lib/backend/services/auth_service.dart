@@ -47,6 +47,13 @@ class AuthService {
         .doc("settings")
         .set({'notification': true});
 
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('datas')
+        .doc("app_datas")
+        .set({'variable1': 'value1', 'variable2': 'value2'});
+
     await user.updateDisplayName(name);
   }
 
