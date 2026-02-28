@@ -40,6 +40,13 @@ class AuthService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('datas')
+        .doc("settings")
+        .set({'notification': true});
+
     await user.updateDisplayName(name);
   }
 
