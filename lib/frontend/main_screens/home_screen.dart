@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sdgp/backend/services/home_profile_service.dart';
+import 'package:sdgp/frontend/main_screens/task_manager_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -134,21 +135,24 @@ class HomeScreen extends StatelessWidget {
           title: "Calendar",
           icon: Icons.calendar_month_rounded,
           onTap: () {
-            //when the calendar tile is clicked, navigate to calendar screen here
+            // TODO: navigate to calendar screen
           },
         ),
         _ShortcutTile(
           title: "Task Manager",
           icon: Icons.checklist_rounded,
           onTap: () {
-            // navigate to task manager
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TaskManagerScreen()),
+            );
           },
         ),
         _ShortcutTile(
           title: "Motivation",
           icon: Icons.auto_awesome_rounded,
           onTap: () {
-            //Navigate to Motivation screen
+            // TODO: Navigate to Motivation screen
           },
         ),
         _ShortcutTile(
@@ -156,7 +160,7 @@ class HomeScreen extends StatelessWidget {
           icon: Icons.add_rounded,
           isAddButton: true,
           onTap: () {
-            // Add shortcut
+            // TODO: Add shortcut
           },
         ),
       ],
@@ -222,7 +226,6 @@ class _QuickTile extends StatelessWidget {
   }
 }
 
-// ✅ NEW: Shortcut Tile (button-like)
 class _ShortcutTile extends StatelessWidget {
   final String title;
   final IconData icon;
