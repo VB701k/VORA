@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sdgp/backend/services/home_profile_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -60,13 +61,19 @@ class HomeScreen extends StatelessWidget {
               constraints: const BoxConstraints(),
             ),
           ),
-          const Text(
-            "VORA Student",
-            style: TextStyle(
-              color: text,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
+          FutureBuilder<String>(
+            future: HomeProfileService.instance.fetchMyName(),
+            builder: (context, snap) {
+              final name = snap.data ?? "VORA Student";
+              return Text(
+                name,
+                style: const TextStyle(
+                  color: text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              );
+            },
           ),
           Align(
             alignment: Alignment.centerRight,
