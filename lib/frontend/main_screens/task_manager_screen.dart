@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:sdgp/backend/models/app_task.dart';
-import 'package:sdgp/backend/services/task_firestore_service.dart';
-import 'package:sdgp/frontend/main_screens/coursework_breakdown_screen.dart';
+import 'package:vora/backend/models/app_task.dart';
+import 'package:vora/backend/services/task_firestore_service.dart';
+import 'package:vora/frontend/main_screens/coursework_breakdown_screen.dart';
 
 class TaskManagerScreen extends StatefulWidget {
   const TaskManagerScreen({super.key});

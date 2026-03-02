@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sdgp/backend/services/task_firestore_service.dart';
+import 'package:vora/backend/services/task_firestore_service.dart';
 
 class CourseworkBreakdownScreen extends StatefulWidget {
   const CourseworkBreakdownScreen({super.key});
@@ -75,6 +75,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
       ),
     );
     if (date == null) return null;
+    if (!mounted) return null;
 
     final time = await showTimePicker(
       context: context,
@@ -222,7 +223,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
   InputDecoration _fieldDeco(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: _muted.withOpacity(0.7)),
+      hintStyle: TextStyle(color: _muted.withValues(alpha: 0.7)),
       filled: true,
       fillColor: _card,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -407,7 +408,7 @@ class _CourseworkBreakdownScreenState extends State<CourseworkBreakdownScreen> {
                     border: Border.all(color: _stroke),
                   ),
                   child: SwitchListTile(
-                    activeColor: _accent,
+                    activeThumbColor: _accent,
                     value: _enableDeadlineNotifications,
                     onChanged: (v) =>
                         setState(() => _enableDeadlineNotifications = v),
@@ -553,8 +554,10 @@ class _Pill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: active ? _accent.withOpacity(0.25) : Colors.transparent,
-          border: Border.all(color: _accent.withOpacity(active ? 0.8 : 0.35)),
+          color: active ? _accent.withValues(alpha: 0.25) : Colors.transparent,
+          border: Border.all(
+            color: _accent.withValues(alpha: active ? 0.8 : 0.35),
+          ),
         ),
         child: Text(
           text,
@@ -665,7 +668,9 @@ class _PlanTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: item.done ? _accent : _stroke),
-              color: item.done ? _accent.withOpacity(0.25) : Colors.transparent,
+              color: item.done
+                  ? _accent.withValues(alpha: 0.25)
+                  : Colors.transparent,
             ),
             child: item.done
                 ? const Icon(Icons.check, size: 16, color: _accent)
