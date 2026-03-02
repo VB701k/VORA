@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:sdgp/backend/services/notification_service.dart';
-import 'package:sdgp/frontend/pages/login_page.dart';
+import 'package:vora/backend/services/notification_service.dart';
+import 'package:vora/frontend/pages/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

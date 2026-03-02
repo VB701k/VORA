@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sdgp/backend/models/app_task.dart';
+import 'package:vora/backend/models/app_task.dart';
 
 class TaskFirestoreService {
   TaskFirestoreService._();

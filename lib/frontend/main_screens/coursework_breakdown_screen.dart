@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sdgp/backend/services/task_firestore_service.dart';
+import 'package:vora/backend/services/task_firestore_service.dart';
 
 class CourseworkBreakdownScreen extends StatefulWidget {
   const CourseworkBreakdownScreen({super.key});

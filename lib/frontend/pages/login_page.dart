@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:sdgp/backend/services/auth_service.dart';
-import 'package:sdgp/backend/services/messaging_service.dart';
-import 'package:sdgp/frontend/pages/forgot_password_page.dart';
-import 'package:sdgp/frontend/pages/home_page.dart';
-import 'package:sdgp/frontend/pages/signup_page.dart';
+import 'package:vora/backend/services/auth_service.dart';
+import 'package:vora/backend/services/messaging_service.dart';
+import 'package:vora/frontend/pages/forgot_password_page.dart';
+import 'package:vora/frontend/pages/home_page.dart';
+import 'package:vora/frontend/pages/signup_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
