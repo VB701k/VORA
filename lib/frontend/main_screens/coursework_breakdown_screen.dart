@@ -554,9 +554,7 @@ class _Pill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: active
-              ? _accent.withValues(alpha: 0.25)
-              : Colors.transparent,
+          color: active ? _accent.withValues(alpha: 0.25) : Colors.transparent,
           border: Border.all(
             color: _accent.withValues(alpha: active ? 0.8 : 0.35),
           ),
@@ -667,13 +665,13 @@ class _PlanTile extends StatelessWidget {
           child: Container(
             width: 22,
             height: 22,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: item.done ? _accent : _stroke),
-                  color: item.done
-                      ? _accent.withValues(alpha: 0.25)
-                      : Colors.transparent,
-                ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: item.done ? _accent : _stroke),
+              color: item.done
+                  ? _accent.withValues(alpha: 0.25)
+                  : Colors.transparent,
+            ),
             child: item.done
                 ? const Icon(Icons.check, size: 16, color: _accent)
                 : null,
