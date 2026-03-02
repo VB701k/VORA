@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:sdgp/backend/services/home_profile_service.dart';
 import 'package:sdgp/frontend/main_screens/task_manager_screen.dart';
+import 'package:sdgp/frontend/pages/wellness_hub_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -24,7 +26,7 @@ class HomeScreen extends StatelessWidget {
           _buildSectionTitle("QUICK ACCESS"),
           const SizedBox(height: 16),
 
-          _buildQuickAccessGrid(),
+          _buildQuickAccessGrid(context),
           const SizedBox(height: 28),
 
           //shortcuts
@@ -61,13 +63,19 @@ class HomeScreen extends StatelessWidget {
               constraints: const BoxConstraints(),
             ),
           ),
-          const Text(
-            "VORA Student",
-            style: TextStyle(
-              color: text,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
+          FutureBuilder<String>(
+            future: HomeProfileService.instance.fetchMyName(),
+            builder: (context, snap) {
+              final name = snap.data ?? "VORA Student";
+              return Text(
+                name,
+                style: const TextStyle(
+                  color: text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              );
+            },
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -97,7 +105,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   // Quick Access Grid
-  Widget _buildQuickAccessGrid() {
+  Widget _buildQuickAccessGrid(BuildContext context) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -105,11 +113,40 @@ class HomeScreen extends StatelessWidget {
       crossAxisSpacing: 14,
       mainAxisSpacing: 14,
       childAspectRatio: 1.1,
-      children: const [
-        _QuickTile(title: "Notes", icon: Icons.note_alt_rounded),
-        _QuickTile(title: "Pomodoro", icon: Icons.timer_rounded),
-        _QuickTile(title: "Mental Wellness", icon: Icons.spa_rounded),
-        _QuickTile(title: "Weekly Analytics", icon: Icons.bar_chart_rounded),
+      children: [
+        _QuickTile(
+          title: "Notes",
+          icon: Icons.note_alt_rounded,
+          onTap: () {
+            //  navigate to Notes
+          },
+        ),
+
+        _QuickTile(
+          title: "Pomodoro",
+          icon: Icons.timer_rounded,
+          onTap: () {
+            //navigate to pomodoro
+          },
+        ),
+        _QuickTile(
+          title: "Mental Wellness",
+          icon: Icons.spa_rounded,
+          onTap: () {
+            //navigate to mental wellness
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WellnessHubScreen()),
+            );
+          },
+        ),
+        _QuickTile(
+          title: "Weekly Analytics",
+          icon: Icons.bar_chart_rounded,
+          onTap: () {
+            //naviagte to Weekly analytics
+          },
+        ),
       ],
     );
   }
@@ -183,9 +220,9 @@ class HomeScreen extends StatelessWidget {
 class _QuickTile extends StatelessWidget {
   final String title;
   final IconData icon;
+  final VoidCallback? onTap;
 
-  const _QuickTile({required this.title, required this.icon});
-
+  const _QuickTile({required this.title, required this.icon, this.onTap});
   static const Color card = HomeScreen.card;
   static const Color accent = HomeScreen.accent;
   static const Color text = HomeScreen.text;
@@ -193,27 +230,32 @@ class _QuickTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: stroke),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: accent, size: 32),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(
-              color: text,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: stroke),
+        ),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: accent, size: 32),
+            const Spacer(),
+            Text(
+              title,
+              style: const TextStyle(
+                color: text,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
