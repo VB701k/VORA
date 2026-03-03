@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vora/backend/services/home_profile_service.dart';
 import 'package:vora/frontend/main_screens/task_manager_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
+import 'package:vora/frontend/pages/pomodoro_tab.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -127,6 +128,10 @@ class HomeScreen extends StatelessWidget {
           icon: Icons.timer_rounded,
           onTap: () {
             //navigate to pomodoro
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PomodoroTab()),
+            );
           },
         ),
         _QuickTile(
