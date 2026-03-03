@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:sdgp/backend/services/notification_service.dart';
+import 'package:vora/backend/services/notification_service.dart';
 
 class MessagingService {
   MessagingService._();

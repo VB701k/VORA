@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:sdgp/backend/models/app_task.dart';
-import 'package:sdgp/backend/services/task_firestore_service.dart';
-import 'package:sdgp/frontend/main_screens/coursework_breakdown_screen.dart';
+import 'package:vora/backend/models/app_task.dart';
+import 'package:vora/backend/services/task_firestore_service.dart';
+import 'package:vora/frontend/main_screens/coursework_breakdown_screen.dart';
 
 class TaskManagerScreen extends StatefulWidget {
   const TaskManagerScreen({super.key});
@@ -33,7 +33,6 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
           IconButton(onPressed: () {}, icon: const Icon(Icons.tune_rounded)),
         ],
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2D5BFF),
         onPressed: () async {
@@ -43,11 +42,9 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
               builder: (_) => const CourseworkBreakdownScreen(),
             ),
           );
-          // StreamBuilder will update automatically when Firestore changes
         },
         child: const Icon(Icons.add, size: 28),
       ),
-
       body: SafeArea(
         child: StreamBuilder<List<AppTask>>(
           stream: TaskFirestoreService.instance.streamTasks(),
@@ -66,7 +63,6 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
 
             final allTasks = snapshot.data ?? [];
 
-            // ✅ Split upcoming vs completed
             final upcoming = allTasks
                 .where((t) => !t.isCompleted)
                 .toList(growable: false);
@@ -74,16 +70,13 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
                 .where((t) => t.isCompleted)
                 .toList(growable: false);
 
-            // ✅ Sort upcoming by due date (closest first)
             final sortedUpcoming = [...upcoming]
               ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
-            // ✅ Group upcoming into priority bands
             final high = _priorityGroup(sortedUpcoming, PriorityBand.high);
             final med = _priorityGroup(sortedUpcoming, PriorityBand.medium);
             final low = _priorityGroup(sortedUpcoming, PriorityBand.low);
 
-            // ✅ Sort completed by due date (latest first optional)
             final sortedCompleted = [...completed]
               ..sort((a, b) => b.dueDate.compareTo(a.dueDate));
 
@@ -106,11 +99,13 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
                   ...high.map(
                     (t) => _TaskCard(
                       task: t,
-                      accent: const Color(0xFFFF4D4D), // RED
+                      accent: const Color(0xFFFF4D4D),
                       onToggle: () => TaskFirestoreService.instance.toggleDone(
                         t.id,
                         t.isCompleted,
                       ),
+                      onRemove: () =>
+                          TaskFirestoreService.instance.hideTask(t.id),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -122,11 +117,13 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
                   ...med.map(
                     (t) => _TaskCard(
                       task: t,
-                      accent: const Color(0xFFFFC14D), // YELLOW
+                      accent: const Color(0xFFFFC14D),
                       onToggle: () => TaskFirestoreService.instance.toggleDone(
                         t.id,
                         t.isCompleted,
                       ),
+                      onRemove: () =>
+                          TaskFirestoreService.instance.hideTask(t.id),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -138,11 +135,13 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
                   ...low.map(
                     (t) => _TaskCard(
                       task: t,
-                      accent: const Color(0xFF39D98A), // GREEN
+                      accent: const Color(0xFF39D98A),
                       onToggle: () => TaskFirestoreService.instance.toggleDone(
                         t.id,
                         t.isCompleted,
                       ),
+                      onRemove: () =>
+                          TaskFirestoreService.instance.hideTask(t.id),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -169,6 +168,8 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
                         t.id,
                         t.isCompleted,
                       ),
+                      onRemove: () =>
+                          TaskFirestoreService.instance.hideTask(t.id),
                       completedStyle: true,
                     ),
                   ),
@@ -180,7 +181,6 @@ class _TaskManagerScreenState extends State<TaskManagerScreen> {
     );
   }
 
-  // ✅ Priority logic based on due date difference
   List<AppTask> _priorityGroup(List<AppTask> tasks, PriorityBand band) {
     final now = DateTime.now();
 
@@ -280,12 +280,14 @@ class _TaskCard extends StatelessWidget {
   final AppTask task;
   final Color accent;
   final VoidCallback onToggle;
+  final Future<void> Function() onRemove;
   final bool completedStyle;
 
   const _TaskCard({
     required this.task,
     required this.accent,
     required this.onToggle,
+    required this.onRemove,
     this.completedStyle = false,
   });
 
@@ -385,9 +387,33 @@ class _TaskCard extends StatelessWidget {
                   ],
                 ),
               ),
-              trailing: const Icon(
-                Icons.more_horiz_rounded,
-                color: Color(0xFFAAB6D3),
+              trailing: PopupMenuButton<String>(
+                icon: const Icon(
+                  Icons.more_horiz_rounded,
+                  color: Color(0xFFAAB6D3),
+                ),
+                onSelected: (value) async {
+                  if (value == "remove") {
+                    await onRemove();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Removed from screen")),
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem<String>(
+                    value: "remove",
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, size: 18),
+                        SizedBox(width: 10),
+                        Text("Remove from screen"),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

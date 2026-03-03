@@ -167,7 +167,7 @@ This project already has a notification setup.
 1. Add import in your file:
 
 ```dart
-import 'package:sdgp/backend/services/notification_service.dart';
+import 'package:vora/backend/services/notification_service.dart';
 ```
 
 2. Call this method where needed (button click, timer finish, etc.):
