@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-
 class PomodoroTab extends StatefulWidget {
-    const PomodoroTab({super.key});
+  const PomodoroTab({super.key});
 
   @override
   State<PomodoroTab> createState() => _PomodoroTabState();
@@ -71,7 +70,6 @@ class _PomodoroTabState extends State<PomodoroTab> {
     return _secondsLeft / _totalSeconds;
   }
 
-
   @override
   Widget build(BuildContext context) {
     const bg = Color(0xFF0F2027);
@@ -85,86 +83,91 @@ class _PomodoroTabState extends State<PomodoroTab> {
             children: [
               const SizedBox(height: 8),
 
-
-            const Text(
-              "Pomodoro Timer",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
+              const Text(
+                "Pomodoro Timer",
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 14),
+              const SizedBox(height: 14),
 
-            Expanded(
+              Expanded(
                 child: Center(
                   child: SizedBox(
                     width: 260,
                     height: 260,
                     child: Stack(
-  alignment: Alignment.center,
-  children: [
-    // ✅ rotate only the rings
-    
-          SizedBox(
-            width: 260,
-            height: 260,
-            child: CircularProgressIndicator(
-              value: 1,
-              strokeWidth: 10,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.white.withOpacity(0.10),
-              ),
-            ),
-          ),
-          const SizedBox(width: 260, height: 260),
-          Transform.rotate(
-          angle: 0,
-          child: SizedBox(
-            width: 260,
-            height: 260,
-            child: CircularProgressIndicator(
-              value: _progress,
-              strokeWidth: 10,
-              strokeCap: StrokeCap.round,
-              valueColor: const AlwaysStoppedAnimation<Color>(primary),
-              backgroundColor: Colors.transparent,
-            ),
-          ),
-          ),
+                      alignment: Alignment.center,
+                      children: [
+                        // ✅ rotate only the rings
+                        SizedBox(
+                          width: 260,
+                          height: 260,
+                          child: CircularProgressIndicator(
+                            value: 1,
+                            strokeWidth: 10,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withOpacity(0.10),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 260, height: 260),
+                        Transform.rotate(
+                          angle: 0,
+                          child: SizedBox(
+                            width: 260,
+                            height: 260,
+                            child: CircularProgressIndicator(
+                              value: _progress,
+                              strokeWidth: 10,
+                              strokeCap: StrokeCap.round,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                primary,
+                              ),
+                              backgroundColor: Colors.transparent,
+                            ),
+                          ),
+                        ),
 
-    // ✅ text stays normal (NOT rotated)
-    Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          _formatTime(_secondsLeft),
-          style: const TextStyle(
-            fontSize: 44,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          "Focus Time",
-          style: TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          "25 min",
-          style: TextStyle(color: Colors.white38, fontSize: 12),
-        ),
-      ],
-    ),
-  ],
-),
+                        // ✅ text stays normal (NOT rotated)
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatTime(_secondsLeft),
+                              style: const TextStyle(
+                                fontSize: 44,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Focus Time",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              "25 min",
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-            
 
               // 🔵 Buttons section
               Row(
@@ -180,7 +183,7 @@ class _PomodoroTabState extends State<PomodoroTab> {
                     ),
                   ),
 
-                    const SizedBox(width: 14),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: _ActionButton(
                       label: "Pause",
@@ -193,8 +196,8 @@ class _PomodoroTabState extends State<PomodoroTab> {
                   ),
                 ],
               ),
-            
-            const SizedBox(height: 12),
+
+              const SizedBox(height: 12),
 
               SizedBox(
                 width: double.infinity,
@@ -205,7 +208,8 @@ class _PomodoroTabState extends State<PomodoroTab> {
                   enabled: true,
                   color: Colors.white70,
                   outlineColor: Colors.white24,
-                  onTap: _reset,                ),
+                  onTap: _reset,
+                ),
               ),
 
               const SizedBox(height: 10),
@@ -263,13 +267,14 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(icon, size: 20),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
           ],
         ),
       ),
     );
   }
 }
+
+
+
+// t1
