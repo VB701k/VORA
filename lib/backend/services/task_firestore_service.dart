@@ -19,7 +19,6 @@ class TaskFirestoreService {
     return _db.collection('users').doc(_uid).collection('tasks');
   }
 
-  /// ✅ Add task into: users/{uid}/tasks/{taskId}
   Future<void> addTask({
     required String id,
     required String title,
@@ -33,20 +32,24 @@ class TaskFirestoreService {
       'dueAt': Timestamp.fromDate(dueAt),
       'isCompleted': false,
       'source': source,
+      'hidden': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  /// ✅ Read tasks (live)
   Stream<List<AppTask>> streamTasks() {
     return _taskCol
+        .where('hidden', isEqualTo: false)
         .orderBy('dueAt', descending: false)
         .snapshots()
         .map((snap) => snap.docs.map((d) => AppTask.fromDoc(d)).toList());
   }
 
-  /// ✅ Toggle done/undone
   Future<void> toggleDone(String taskId, bool currentValue) async {
     await _taskCol.doc(taskId).update({'isCompleted': !currentValue});
+  }
+
+  Future<void> hideTask(String taskId) async {
+    await _taskCol.doc(taskId).update({'hidden': true});
   }
 }
