@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vora/backend/services/ai_chat_service.dart';
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
