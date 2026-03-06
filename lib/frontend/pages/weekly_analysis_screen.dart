@@ -112,6 +112,7 @@ class _TopBar extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withAlpha(170),
                   fontSize: 12.5,
@@ -164,29 +165,40 @@ class _MostProductiveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Most Productive Day:\nWednesday',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            height: 1.2,
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wednesday was your best performance day this week.'),
+            duration: Duration(seconds: 2),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'You completed 85% of your tasks\nand studied for 14 hours this week.\nKeep up the great work!',
-          style: TextStyle(
-            color: Colors.white.withAlpha(230),
-            fontSize: 13,
-            height: 1.35,
-            fontWeight: FontWeight.w500,
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Most Productive Day:\nWednesday',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            'You completed 85% of your tasks\nand studied for 14 hours this week.\nKeep up the great work!',
+            style: TextStyle(
+              color: Colors.white.withAlpha(230),
+              fontSize: 13,
+              height: 1.35,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -257,6 +269,21 @@ class _TaskBarChart extends StatelessWidget {
         minY: 0,
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+              return BarTooltipItem(
+                '${labels[group.x]}: ${rod.toY.toInt()}%',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            },
+          ),
+        ),
         titlesData: FlTitlesData(
           leftTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -408,6 +435,24 @@ class _StudyLineChart extends StatelessWidget {
         maxY: 6,
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (touchedSpots) {
+              const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+              return touchedSpots.map((spot) {
+                final dayIndex = spot.x.round().clamp(0, 6);
+                return LineTooltipItem(
+                  '${labels[dayIndex]}: ${spot.y.toStringAsFixed(1)}h',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
         titlesData: FlTitlesData(
           leftTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -470,20 +515,34 @@ class _MoodRowCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (i) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(moods[i], style: const TextStyle(fontSize: 22)),
-            const SizedBox(height: 6),
-            Text(
-              days[i],
-              style: TextStyle(
-                color: Colors.white.withAlpha(210),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${days[i]} mood: ${moods[i]}'),
+                duration: const Duration(seconds: 1),
               ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(moods[i], style: const TextStyle(fontSize: 22)),
+                const SizedBox(height: 6),
+                Text(
+                  days[i],
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(210),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       }),
     );
@@ -495,47 +554,67 @@ class _MoodInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: Colors.black.withAlpha(40),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withAlpha(40)),
-          ),
-          child: const Icon(
-            Icons.lightbulb_outline,
-            color: Colors.white,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: TextStyle(
-                color: Colors.white.withAlpha(235),
-                fontSize: 13,
-                height: 1.35,
-                fontWeight: FontWeight.w500,
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Mood Insight'),
+            content: const Text(
+              'Your mood tends to dip on Fridays. Try planning a lighter schedule or taking a short break that day.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
               ),
-              children: const [
-                TextSpan(
-                  text: 'Your mood seems to dip on Fridays.\n',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                TextSpan(
-                  text:
-                      'Consider scheduling a lighter study load or a break to recharge for the weekend.',
-                ),
-              ],
+            ],
+          ),
+        );
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(40),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withAlpha(40)),
+            ),
+            child: const Icon(
+              Icons.lightbulb_outline,
+              color: Colors.white,
+              size: 20,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  color: Colors.white.withAlpha(235),
+                  fontSize: 13,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                ),
+                children: const [
+                  TextSpan(
+                    text: 'Your mood seems to dip on Fridays.\n',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  TextSpan(
+                    text:
+                        'Consider scheduling a lighter study load or a break to recharge for the weekend.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
