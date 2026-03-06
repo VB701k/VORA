@@ -11,19 +11,38 @@ class AiScreen extends StatefulWidget {
 class _AiScreenState extends State<AiScreen> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
+  bool _isLoading = false;
 
-  void _sendMessage(String text) {
-    if (text.trim().isEmpty) return;
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty || _isLoading) return;
+
+    final userText = text.trim();
 
     setState(() {
-      _messages.add({"role": "user", "text": text});
-      _messages.add({
-        "role": "bot",
-        "text": "This is where the study AI reply will appear.",
-      });
+      _messages.add({"role": "user", "text": userText});
+      _isLoading = true;
     });
 
     _controller.clear();
+
+    try {
+      final reply = await AIChatService.sendMessage(userText);
+
+      setState(() {
+        _messages.add({"role": "bot", "text": reply});
+      });
+    } catch (e) {
+      setState(() {
+        _messages.add({
+          "role": "bot",
+          "text": "Sorry, something went wrong. Please try again.",
+        });
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Widget _suggestion(String text) {
@@ -56,26 +75,30 @@ class _AiScreenState extends State<AiScreen> {
       body: Column(
         children: [
           const SizedBox(height: 20),
-
           const Text(
             "Hello! I’m your VORA study assistant.\nHow can I help you?",
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
-
           const SizedBox(height: 16),
-
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               _suggestion("Explain photosynthesis"),
               _suggestion("Help with my essay"),
               _suggestion("Quiz me on History"),
             ],
           ),
-
           const SizedBox(height: 16),
-
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                "VORA is thinking...",
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
@@ -98,7 +121,7 @@ class _AiScreenState extends State<AiScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      msg["text"]!,
+                      msg["text"] ?? "",
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -106,7 +129,6 @@ class _AiScreenState extends State<AiScreen> {
               },
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(10),
             child: Row(
@@ -115,6 +137,9 @@ class _AiScreenState extends State<AiScreen> {
                   child: TextField(
                     controller: _controller,
                     style: const TextStyle(color: Colors.white),
+                    onSubmitted: _isLoading
+                        ? null
+                        : (value) => _sendMessage(value),
                     decoration: InputDecoration(
                       hintText: "Ask me anything...",
                       hintStyle: const TextStyle(color: Colors.white54),
@@ -129,8 +154,19 @@ class _AiScreenState extends State<AiScreen> {
                 ),
                 const SizedBox(width: 8),
                 FloatingActionButton(
-                  onPressed: () => _sendMessage(_controller.text),
-                  child: const Icon(Icons.send),
+                  onPressed: _isLoading
+                      ? null
+                      : () => _sendMessage(_controller.text),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send),
                 ),
               ],
             ),

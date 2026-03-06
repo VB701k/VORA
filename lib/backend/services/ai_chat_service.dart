@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIChatService {
-  static const String apiKey = 'YOUR_API_KEY_HERE';
+  static const String apiKey = 'AIzaSyC2mO5FV-x-97OL92Z0RedpgcDsiFZVcOQ';
 
   static Future<String> sendMessage(String userMessage) async {
     final url = Uri.parse(
@@ -19,9 +19,13 @@ class AIChatService {
               {
                 'text':
                     'You are a study assistant. Only answer educational questions. '
-                    'If the question is not related to education, studies, coursework, exams, learning, or academic help, '
-                    'politely refuse.\n\nUser question: $userMessage',
+                    'If the question is not related to education, politely refuse.',
               },
+            ],
+          },
+          {
+            'parts': [
+              {'text': userMessage},
             ],
           },
         ],
