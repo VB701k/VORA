@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/ai_chat_service.dart';
+import 'package:vora/frontend/pages/ai_history_screen.dart';
 import '../../backend/models/chat_session.dart';
 
 class AiScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class _AiScreenState extends State<AiScreen> {
 
   ChatSession? currentChat;
   List<Map<String, String>> messages = [];
+  List<ChatSession> chatHistory = [];
 
   bool _isLoading = false;
 
@@ -25,6 +27,8 @@ class _AiScreenState extends State<AiScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       createdAt: DateTime.now(),
     );
+
+    chatHistory.add(currentChat!);
   }
 
   Future<void> _sendMessage(String text) async {
@@ -59,6 +63,28 @@ class _AiScreenState extends State<AiScreen> {
     }
   }
 
+  void _startNewChat() {
+    setState(() {
+      messages.clear();
+
+      currentChat = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+      );
+
+      chatHistory.insert(0, currentChat!);
+    });
+  }
+
+  void _openHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AiHistoryScreen(chatHistory: chatHistory),
+      ),
+    );
+  }
+
   Widget _suggestion(String text) {
     return ElevatedButton(
       onPressed: () => _sendMessage(text),
@@ -79,8 +105,10 @@ class _AiScreenState extends State<AiScreen> {
         elevation: 0,
         title: const Text("Study AI"),
         centerTitle: true,
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(icon: const Icon(Icons.history), onPressed: _openHistory),
+          IconButton(icon: const Icon(Icons.add), onPressed: _startNewChat),
+          const Padding(
             padding: EdgeInsets.all(12),
             child: Icon(Icons.smart_toy_outlined),
           ),
