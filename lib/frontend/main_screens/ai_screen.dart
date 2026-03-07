@@ -59,6 +59,17 @@ class _AiScreenState extends State<AiScreen> {
     }
   }
 
+  void _startNewChat() {
+    setState(() {
+      messages.clear();
+
+      currentChat = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+      );
+    });
+  }
+
   Widget _suggestion(String text) {
     return ElevatedButton(
       onPressed: () => _sendMessage(text),
@@ -79,8 +90,9 @@ class _AiScreenState extends State<AiScreen> {
         elevation: 0,
         title: const Text("Study AI"),
         centerTitle: true,
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(icon: const Icon(Icons.add), onPressed: _startNewChat),
+          const Padding(
             padding: EdgeInsets.all(12),
             child: Icon(Icons.smart_toy_outlined),
           ),
