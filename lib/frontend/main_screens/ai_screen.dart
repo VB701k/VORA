@@ -26,6 +26,7 @@ class _AiScreenState extends State<AiScreen> {
     currentChat = ChatSession(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       createdAt: DateTime.now(),
+      title: "New Chat",
     );
 
     chatHistory.add(currentChat!);
@@ -70,6 +71,7 @@ class _AiScreenState extends State<AiScreen> {
       currentChat = ChatSession(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
+        title: "New Chat",
       );
 
       chatHistory.insert(0, currentChat!);

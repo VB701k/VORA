@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../backend/models/chat_session.dart';
 
 class AiHistoryScreen extends StatelessWidget {
@@ -8,6 +9,8 @@ class AiHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dateFormat = DateFormat('MMM d, h:mm a');
+
     return Scaffold(
       backgroundColor: const Color(0xFF071A1F),
       appBar: AppBar(
@@ -34,11 +37,11 @@ class AiHistoryScreen extends StatelessWidget {
                     color: Colors.white,
                   ),
                   title: Text(
-                    "Chat ${index + 1}",
+                    chat.title,
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    chat.createdAt.toString(),
+                    dateFormat.format(chat.createdAt),
                     style: const TextStyle(color: Colors.white70),
                   ),
                 );
