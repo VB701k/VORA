@@ -44,6 +44,9 @@ class AiHistoryScreen extends StatelessWidget {
                     dateFormat.format(chat.createdAt),
                     style: const TextStyle(color: Colors.white70),
                   ),
+                  onTap: () {
+                    Navigator.pop(context, chat);
+                  },
                 );
               },
             ),
