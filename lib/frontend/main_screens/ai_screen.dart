@@ -27,6 +27,7 @@ class _AiScreenState extends State<AiScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       createdAt: DateTime.now(),
       title: "New Chat",
+      messages: [],
     );
 
     chatHistory.add(currentChat!);
@@ -45,9 +46,29 @@ class _AiScreenState extends State<AiScreen> {
           id: currentChat!.id,
           createdAt: currentChat!.createdAt,
           title: userText,
+          messages: List.from(messages),
         );
 
-        chatHistory[0] = currentChat!;
+        final index = chatHistory.indexWhere(
+          (chat) => chat.id == currentChat!.id,
+        );
+        if (index != -1) {
+          chatHistory[index] = currentChat!;
+        }
+      } else if (currentChat != null) {
+        currentChat = ChatSession(
+          id: currentChat!.id,
+          createdAt: currentChat!.createdAt,
+          title: currentChat!.title,
+          messages: List.from(messages),
+        );
+
+        final index = chatHistory.indexWhere(
+          (chat) => chat.id == currentChat!.id,
+        );
+        if (index != -1) {
+          chatHistory[index] = currentChat!;
+        }
       }
 
       _isLoading = true;
@@ -60,6 +81,22 @@ class _AiScreenState extends State<AiScreen> {
 
       setState(() {
         messages.add({"role": "bot", "text": reply});
+
+        if (currentChat != null) {
+          currentChat = ChatSession(
+            id: currentChat!.id,
+            createdAt: currentChat!.createdAt,
+            title: currentChat!.title,
+            messages: List.from(messages),
+          );
+
+          final index = chatHistory.indexWhere(
+            (chat) => chat.id == currentChat!.id,
+          );
+          if (index != -1) {
+            chatHistory[index] = currentChat!;
+          }
+        }
       });
     } catch (e) {
       setState(() {
@@ -67,6 +104,22 @@ class _AiScreenState extends State<AiScreen> {
           "role": "bot",
           "text": "Sorry, something went wrong. Please try again.",
         });
+
+        if (currentChat != null) {
+          currentChat = ChatSession(
+            id: currentChat!.id,
+            createdAt: currentChat!.createdAt,
+            title: currentChat!.title,
+            messages: List.from(messages),
+          );
+
+          final index = chatHistory.indexWhere(
+            (chat) => chat.id == currentChat!.id,
+          );
+          if (index != -1) {
+            chatHistory[index] = currentChat!;
+          }
+        }
       });
     } finally {
       setState(() {
@@ -83,19 +136,27 @@ class _AiScreenState extends State<AiScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
         title: "New Chat",
+        messages: [],
       );
 
       chatHistory.insert(0, currentChat!);
     });
   }
 
-  void _openHistory() {
-    Navigator.push(
+  Future<void> _openHistory() async {
+    final selectedChat = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AiHistoryScreen(chatHistory: chatHistory),
       ),
     );
+
+    if (selectedChat != null && selectedChat is ChatSession) {
+      setState(() {
+        currentChat = selectedChat;
+        messages = List<Map<String, String>>.from(selectedChat.messages);
+      });
+    }
   }
 
   Widget _suggestion(String text) {
