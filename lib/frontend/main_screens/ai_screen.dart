@@ -39,6 +39,17 @@ class _AiScreenState extends State<AiScreen> {
 
     setState(() {
       messages.add({"role": "user", "text": userText});
+
+      if (currentChat != null && messages.length == 1) {
+        currentChat = ChatSession(
+          id: currentChat!.id,
+          createdAt: currentChat!.createdAt,
+          title: userText,
+        );
+
+        chatHistory[0] = currentChat!;
+      }
+
       _isLoading = true;
     });
 
