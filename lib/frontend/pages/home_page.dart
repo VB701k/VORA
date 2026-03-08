@@ -4,8 +4,6 @@ import 'package:vora/frontend/main_screens/search_screen.dart';
 import 'package:vora/frontend/main_screens/home_screen.dart';
 import 'package:vora/frontend/main_screens/ai_screen.dart';
 import 'package:vora/frontend/main_screens/profile_screen.dart';
-import 'package:vora/frontend/pages/weekly_analysis_screen.dart';
-import 'package:vora/frontend/pages/calendar_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
