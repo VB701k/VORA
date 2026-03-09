@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../backend/models/calendar_schedule.dart';
+import '../../backend/services/calendar_service.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -8,11 +11,231 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  final CalendarService _service = CalendarService();
+
   int _viewIndex = 0; // 0=Month, 1=Week, 2=Day
   int _filterIndex = 1; // 0=Classes, 1=Assignments, 2=Exams
 
-  // Demo selected date highlight (Sep 5)
-  final int _selectedDay = 5;
+  DateTime _currentMonth = DateTime.now();
+  DateTime _selectedDate = DateTime.now();
+
+  List<CalendarSchedule> _visibleSchedules = [];
+  List<CalendarSchedule> _monthSchedules = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSchedules();
+    _service.checkExpiredAndNotify();
+  }
+
+  Future<void> _refreshSchedules() async {
+    List<CalendarSchedule> items;
+    List<CalendarSchedule> monthItems = await _service.getSchedulesForMonth(
+      _currentMonth,
+    );
+
+    if (_viewIndex == 0) {
+      items = await _service.getSchedulesForMonth(_currentMonth);
+    } else if (_viewIndex == 1) {
+      items = await _service.getSchedulesForWeek(_selectedDate);
+    } else {
+      items = await _service.getSchedulesForDay(_selectedDate);
+    }
+
+    items = _applyTypeFilter(items);
+
+    setState(() {
+      _visibleSchedules = items;
+      _monthSchedules = monthItems;
+    });
+  }
+
+  List<CalendarSchedule> _applyTypeFilter(List<CalendarSchedule> items) {
+    final type = _selectedTypeName();
+    return items.where((e) => e.type.toLowerCase() == type).toList();
+  }
+
+  String _selectedTypeName() {
+    if (_filterIndex == 0) return 'class';
+    if (_filterIndex == 1) return 'assignment';
+    return 'exam';
+  }
+
+  Future<void> _markCompleted(CalendarSchedule item) async {
+    await _service.markCompleted(item.id);
+    await _refreshSchedules();
+  }
+
+  Future<void> _openAddDialog() async {
+    final titleController = TextEditingController();
+    final placeController = TextEditingController();
+    final durationController = TextEditingController();
+
+    String selectedType = 'assignment';
+    DateTime chosenDate = _selectedDate;
+    TimeOfDay chosenTime = TimeOfDay.now();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _C.card,
+          title: const Text('Add Schedule', style: TextStyle(color: _C.text)),
+          content: StatefulBuilder(
+            builder: (context, setInnerState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _dialogField(titleController, 'Title'),
+                    const SizedBox(height: 10),
+                    _dialogField(placeController, 'Place'),
+                    const SizedBox(height: 10),
+                    _dialogField(durationController, 'Duration'),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      dropdownColor: _C.card,
+                      style: const TextStyle(color: _C.text),
+                      decoration: _dialogDecoration('Type'),
+                      items: const [
+                        DropdownMenuItem(value: 'class', child: Text('Class')),
+                        DropdownMenuItem(
+                          value: 'assignment',
+                          child: Text('Assignment'),
+                        ),
+                        DropdownMenuItem(value: 'exam', child: Text('Exam')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setInnerState(() => selectedType = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Date: ${DateFormat('yyyy-MM-dd').format(chosenDate)}',
+                        style: const TextStyle(color: _C.text),
+                      ),
+                      trailing: const Icon(
+                        Icons.calendar_today,
+                        color: _C.accent,
+                      ),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: chosenDate,
+                          firstDate: DateTime(2024),
+                          lastDate: DateTime(2035),
+                        );
+                        if (picked != null) {
+                          setInnerState(() => chosenDate = picked);
+                        }
+                      },
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Time: ${chosenTime.format(context)}',
+                        style: const TextStyle(color: _C.text),
+                      ),
+                      trailing: const Icon(Icons.access_time, color: _C.accent),
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: chosenTime,
+                        );
+                        if (picked != null) {
+                          setInnerState(() => chosenTime = picked);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: Navigator.of(context).pop,
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final dateTime = DateTime(
+                  chosenDate.year,
+                  chosenDate.month,
+                  chosenDate.day,
+                  chosenTime.hour,
+                  chosenTime.minute,
+                );
+
+                final item = CalendarSchedule(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: titleController.text.trim(),
+                  type: selectedType,
+                  startDateTime: dateTime,
+                  deadline: dateTime,
+                  place: placeController.text.trim(),
+                  durationText: durationController.text.trim().isEmpty
+                      ? null
+                      : durationController.text.trim(),
+                  badge: '',
+                  isCompleted: false,
+                  isManuallyCreated: true,
+                );
+
+                await _service.addManualSchedule(item);
+                if (mounted) Navigator.pop(context);
+                await _refreshSchedules();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  InputDecoration _dialogDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: _C.textDim),
+      enabledBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: _C.stroke),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: _C.accent),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+
+  Widget _dialogField(TextEditingController controller, String label) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: _C.text),
+      decoration: _dialogDecoration(label),
+    );
+  }
+
+  void _goToPrevMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+    });
+    _refreshSchedules();
+  }
+
+  void _goToNextMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+    });
+    _refreshSchedules();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,61 +249,43 @@ class _CalendarScreenState extends State<CalendarScreen> {
             children: [
               _topBar(context),
               const SizedBox(height: 14),
-
               _segmentedView(),
               const SizedBox(height: 16),
-
               _filtersRow(),
               const SizedBox(height: 18),
-
               _monthHeader(),
               const SizedBox(height: 12),
-
               _calendarGrid(),
               const SizedBox(height: 18),
-
-              _todayHeader(),
+              _sectionHeader(),
               const SizedBox(height: 12),
-
               Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: const [
-                    _ScheduleCard(
-                      time: "09:00",
-                      ampm: "AM",
-                      dotColor: _C.tealDot,
-                      title: "Advanced Psych Statistics",
-                      subtitle1: "Hall B-12",
-                      subtitle2: "1h 30m",
-                      rightTop: "SEP 5, TUE",
-                    ),
-                    SizedBox(height: 12),
-                    _ScheduleCard(
-                      time: "11:59",
-                      ampm: "PM",
-                      dotColor: _C.yellowDot,
-                      title: "Submit Term Paper",
-                      subtitle1: "Canvas Submission",
-                      badge: "URGENT",
-                    ),
-                    SizedBox(height: 12),
-                    _ScheduleCard(
-                      time: "02:30",
-                      ampm: "PM",
-                      dotColor: _C.tealDot,
-                      title: "Organic Chemistry Lab",
-                      subtitle1: "Canceled by Professor",
-                      isCancelled: true,
-                    ),
-                  ],
-                ),
+                child: _visibleSchedules.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No schedules found',
+                          style: TextStyle(color: _C.textDim),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: _visibleSchedules.length,
+                        itemBuilder: (context, index) {
+                          final item = _visibleSchedules[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _ScheduleCard(
+                              schedule: item,
+                              onComplete: () => _markCompleted(item),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
         ),
       ),
-
       floatingActionButton: _fab(),
     );
   }
@@ -149,7 +354,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final bool selected = _viewIndex == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _viewIndex = index),
+        onTap: () async {
+          setState(() => _viewIndex = index);
+          await _refreshSchedules();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -188,7 +396,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     Color bg;
     Color border;
     if (index == 1) {
-      // Assignments pill in screenshot looks olive
       bg = selected ? _C.olive : Colors.transparent;
       border = _C.oliveBorder;
     } else {
@@ -197,7 +404,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     return GestureDetector(
-      onTap: () => setState(() => _filterIndex = index),
+      onTap: () async {
+        setState(() => _filterIndex = index);
+        await _refreshSchedules();
+      },
       child: Container(
         height: 44,
         decoration: BoxDecoration(
@@ -208,7 +418,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         alignment: Alignment.center,
         child: Text(
           text,
-          style: TextStyle(
+          style: const TextStyle(
             color: _C.text,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.5,
@@ -222,159 +432,161 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _circleIcon(Icons.chevron_left_rounded),
-        const Text(
-          "September 2023",
-          style: TextStyle(
+        _circleIcon(Icons.chevron_left_rounded, _goToPrevMonth),
+        Text(
+          DateFormat('MMMM yyyy').format(_currentMonth),
+          style: const TextStyle(
             color: _C.textDim,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
-        _circleIcon(Icons.chevron_right_rounded),
+        _circleIcon(Icons.chevron_right_rounded, _goToNextMonth),
       ],
     );
   }
 
-  Widget _circleIcon(IconData icon) {
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: _C.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _C.stroke),
+  Widget _circleIcon(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: _C.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _C.stroke),
+        ),
+        child: Icon(icon, color: _C.textDim),
       ),
-      child: Icon(icon, color: _C.textDim),
     );
   }
 
   Widget _calendarGrid() {
-    // Simple month layout demo (not real date calculation, just matches UI look)
+    final firstDayOfMonth = DateTime(
+      _currentMonth.year,
+      _currentMonth.month,
+      1,
+    );
+    final daysInMonth = DateTime(
+      _currentMonth.year,
+      _currentMonth.month + 1,
+      0,
+    ).day;
+    final leadingEmpty = firstDayOfMonth.weekday % 7;
+
+    final cells = <Widget>[];
+
+    for (int i = 0; i < leadingEmpty; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+
+    for (int day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(_currentMonth.year, _currentMonth.month, day);
+      final isSelected =
+          date.year == _selectedDate.year &&
+          date.month == _selectedDate.month &&
+          date.day == _selectedDate.day;
+
+      final hasSchedule = _monthSchedules.any(
+        (e) =>
+            e.startDateTime.year == date.year &&
+            e.startDateTime.month == date.month &&
+            e.startDateTime.day == date.day,
+      );
+
+      cells.add(
+        GestureDetector(
+          onTap: () async {
+            setState(() => _selectedDate = date);
+            await _refreshSchedules();
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? _C.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  '$day',
+                  style: TextStyle(
+                    color: isSelected ? _C.bg : _C.text,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (hasSchedule)
+                  const Positioned(
+                    bottom: 4,
+                    child: CircleAvatar(
+                      radius: 2.5,
+                      backgroundColor: _C.yellowDot,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
 
-    // leading blanks + days (roughly like screenshot)
-    final cells = <String?>[
-      null,
-      null,
-      null,
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "11",
-      "12",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-    ];
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: weekDays
-                .map(
-                  (d) => Expanded(
-                    child: Center(
-                      child: Text(
-                        d,
-                        style: const TextStyle(
-                          color: _C.textDim,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                        ),
+    return Column(
+      children: [
+        Row(
+          children: weekDays
+              .map(
+                (d) => Expanded(
+                  child: Center(
+                    child: Text(
+                      d,
+                      style: const TextStyle(
+                        color: _C.textDim,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
                       ),
                     ),
                   ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: cells.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 6,
-              childAspectRatio: 1.0,
-            ),
-            itemBuilder: (_, i) {
-              final value = cells[i];
-              if (value == null) return const SizedBox.shrink();
-
-              final day = int.tryParse(value) ?? 0;
-              final selected = day == _selectedDay;
-
-              return Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: selected ? _C.accent : Colors.transparent,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: selected ? Colors.transparent : Colors.transparent,
-                    ),
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: _C.accent.withOpacity(0.25),
-                              blurRadius: 18,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : [],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      color: selected ? _C.bg : _C.text,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
                 ),
-              );
-            },
-          ),
-        ],
-      ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          shrinkWrap: true,
+          crossAxisCount: 7,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 6,
+          childAspectRatio: 1,
+          physics: const NeverScrollableScrollPhysics(),
+          children: cells,
+        ),
+      ],
     );
   }
 
-  Widget _todayHeader() {
+  Widget _sectionHeader() {
+    String title = 'Selected Schedules';
+    if (_viewIndex == 0) title = 'Monthly Schedules';
+    if (_viewIndex == 1) title = 'Weekly Schedules';
+    if (_viewIndex == 2) title = 'Daily Schedules';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
+      children: [
         Text(
-          "Today's Schedule",
-          style: TextStyle(
+          title,
+          style: const TextStyle(
             color: _C.text,
             fontSize: 18,
             fontWeight: FontWeight.w800,
           ),
         ),
         Text(
-          "SEP 5, TUE",
-          style: TextStyle(
+          DateFormat('MMM d, yyyy').format(_selectedDate),
+          style: const TextStyle(
             color: _C.textDim,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.6,
@@ -397,9 +609,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ],
       ),
       child: FloatingActionButton(
-        onPressed: () {
-          // TODO: open add-event bottomsheet
-        },
+        onPressed: _openAddDialog,
         backgroundColor: _C.accent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add_rounded, color: _C.bg, size: 28),
@@ -409,30 +619,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
 }
 
 class _ScheduleCard extends StatelessWidget {
-  final String time;
-  final String ampm;
-  final Color dotColor;
-  final String title;
-  final String subtitle1;
-  final String? subtitle2;
-  final String? badge;
-  final bool isCancelled;
-  final String? rightTop;
+  final CalendarSchedule schedule;
+  final VoidCallback onComplete;
 
-  const _ScheduleCard({
-    required this.time,
-    required this.ampm,
-    required this.dotColor,
-    required this.title,
-    required this.subtitle1,
-    this.subtitle2,
-    this.badge,
-    this.isCancelled = false,
-    this.rightTop,
-  });
+  const _ScheduleCard({required this.schedule, required this.onComplete});
 
   @override
   Widget build(BuildContext context) {
+    final time = DateFormat('hh:mm').format(schedule.startDateTime);
+    final ampm = DateFormat('a').format(schedule.startDateTime);
+
+    final isExpired = schedule.isExpired;
+    final isCancelled = schedule.badge.toUpperCase() == 'CANCELLED';
+
+    Color dotColor = _C.tealDot;
+    if (schedule.type == 'assignment') dotColor = _C.yellowDot;
+    if (schedule.type == 'exam') dotColor = const Color(0xFFFF8A65);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -443,7 +646,6 @@ class _ScheduleCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Time column
           SizedBox(
             width: 62,
             child: Column(
@@ -469,33 +671,29 @@ class _ScheduleCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Divider line
           Container(
             width: 1,
-            height: 62,
+            height: 70,
             margin: const EdgeInsets.only(top: 4, right: 12),
             color: _C.stroke,
           ),
-
-          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (rightTop != null)
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Text(
-                      rightTop!,
-                      style: const TextStyle(
-                        color: _C.textDim,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Text(
+                    DateFormat(
+                      'MMM d, EEE',
+                    ).format(schedule.startDateTime).toUpperCase(),
+                    style: const TextStyle(
+                      color: _C.textDim,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
                     ),
                   ),
-
+                ),
                 Row(
                   children: [
                     Container(
@@ -509,57 +707,53 @@ class _ScheduleCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        title,
+                        schedule.title,
                         style: TextStyle(
                           color: isCancelled ? _C.textDim : _C.text,
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
-                          decoration: isCancelled
+                          decoration: schedule.isCompleted
                               ? TextDecoration.lineThrough
                               : null,
                         ),
                       ),
                     ),
+                    IconButton(
+                      onPressed: schedule.isCompleted ? null : onComplete,
+                      icon: Icon(
+                        schedule.isCompleted
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color: schedule.isCompleted
+                            ? Colors.greenAccent
+                            : _C.textDim,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-
-                _metaRow(
-                  Icons.location_on_outlined,
-                  subtitle1,
-                  dim: isCancelled,
-                ),
-
-                if (subtitle2 != null) ...[
+                _metaRow(Icons.location_on_outlined, schedule.place),
+                if ((schedule.durationText ?? '').isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  _metaRow(
-                    Icons.access_time_rounded,
-                    subtitle2!,
-                    dim: isCancelled,
-                  ),
+                  _metaRow(Icons.access_time_rounded, schedule.durationText!),
                 ],
-
-                if (badge != null) ...[
+                if (isExpired) ...[
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _C.badgeBg,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      badge!,
-                      style: const TextStyle(
-                        color: _C.badgeText,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        fontSize: 12,
-                      ),
-                    ),
+                  _badge(
+                    'EXPIRED',
+                    const Color(0xFF5C1F1F),
+                    const Color(0xFFFF9E9E),
                   ),
+                ] else if (schedule.isCompleted) ...[
+                  const SizedBox(height: 10),
+                  _badge(
+                    'COMPLETED',
+                    const Color(0xFF163D25),
+                    const Color(0xFF8CFFB5),
+                  ),
+                ] else if (schedule.badge.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _badge(schedule.badge, _C.badgeBg, _C.badgeText),
                 ],
               ],
             ),
@@ -569,16 +763,17 @@ class _ScheduleCard extends StatelessWidget {
     );
   }
 
-  Widget _metaRow(IconData icon, String text, {bool dim = false}) {
+  Widget _metaRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: dim ? _C.textDim : _C.textDim),
+        const SizedBox(width: 0),
+        Icon(icon, size: 16, color: _C.textDim),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
-              color: dim ? _C.textDim : _C.textDim,
+            style: const TextStyle(
+              color: _C.textDim,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -586,39 +781,50 @@ class _ScheduleCard extends StatelessWidget {
       ],
     );
   }
+
+  Widget _badge(String text, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.6,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
 }
 
 class _C {
-  // Background & surfaces
   static const bg = Color(0xFF0E1B1A);
   static const card = Color(0xFF132524);
   static const stroke = Color(0xFF1F3B39);
 
-  // Text
   static const text = Color(0xFFEAF6F4);
   static const textDim = Color(0xFF9AB7B3);
 
-  // Accents
   static const accent = Color(0xFF2ED1B2);
   static const iconBg = Color(0xFF0F2A26);
 
-  // Segmented
   static const segmentBg = Color(0xFF163432);
   static const segmentSelected = Color(0xFF0F2A26);
 
-  // Pills
   static const pillBorder = Color(0xFF2ED1B2);
   static const pillSelected = Color(0xFF0F2A26);
 
-  // Olive assignments pill
   static const olive = Color(0xFF535A1F);
   static const oliveBorder = Color(0xFFB8C05A);
 
-  // Dots
   static const tealDot = Color(0xFF2ED1B2);
   static const yellowDot = Color(0xFFF2C94C);
 
-  // Badge
   static const badgeBg = Color(0xFF3B3B10);
   static const badgeText = Color(0xFFE9E27A);
 }
