@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/ai_chat_service.dart';
+import 'package:vora/backend/services/ai_chat_firestore_service.dart';
+import 'package:vora/frontend/pages/ai_history_screen.dart';
+import '../../backend/models/chat_session.dart';
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
@@ -10,16 +13,43 @@ class AiScreen extends StatefulWidget {
 
 class _AiScreenState extends State<AiScreen> {
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, String>> _messages = [];
+
+  ChatSession? currentChat;
+  List<Map<String, String>> messages = [];
+  List<ChatSession> chatHistory = [];
+
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadChats();
+  }
+
+  Future<void> _loadChats() async {
+    final chats = await AiChatFirestoreService.instance.loadChats();
+
+    setState(() {
+      chatHistory = chats;
+
+      currentChat = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        title: "New Chat",
+        messages: [],
+      );
+
+      messages = [];
+    });
+  }
+
   Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty || _isLoading) return;
+    if (text.trim().isEmpty || _isLoading || currentChat == null) return;
 
     final userText = text.trim();
 
     setState(() {
-      _messages.add({"role": "user", "text": userText});
+      messages.add({"role": "user", "text": userText});
       _isLoading = true;
     });
 
@@ -29,18 +59,89 @@ class _AiScreenState extends State<AiScreen> {
       final reply = await AIChatService.sendMessage(userText);
 
       setState(() {
-        _messages.add({"role": "bot", "text": reply});
+        messages.add({"role": "bot", "text": reply});
+
+        currentChat = ChatSession(
+          id: currentChat!.id,
+          createdAt: currentChat!.createdAt,
+          title: messages.isNotEmpty
+              ? (messages.first["text"] ?? "New Chat")
+              : "New Chat",
+          messages: List<Map<String, String>>.from(messages),
+        );
+
+        final index = chatHistory.indexWhere(
+          (chat) => chat.id == currentChat!.id,
+        );
+
+        if (index != -1) {
+          chatHistory[index] = currentChat!;
+        } else {
+          chatHistory.insert(0, currentChat!);
+        }
       });
+
+      await AiChatFirestoreService.instance.saveChat(currentChat!);
     } catch (e) {
       setState(() {
-        _messages.add({
+        messages.add({
           "role": "bot",
           "text": "Sorry, something went wrong. Please try again.",
         });
+
+        currentChat = ChatSession(
+          id: currentChat!.id,
+          createdAt: currentChat!.createdAt,
+          title: messages.isNotEmpty
+              ? (messages.first["text"] ?? "New Chat")
+              : "New Chat",
+          messages: List<Map<String, String>>.from(messages),
+        );
+
+        final index = chatHistory.indexWhere(
+          (chat) => chat.id == currentChat!.id,
+        );
+
+        if (index != -1) {
+          chatHistory[index] = currentChat!;
+        } else {
+          chatHistory.insert(0, currentChat!);
+        }
       });
+
+      await AiChatFirestoreService.instance.saveChat(currentChat!);
     } finally {
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  void _startNewChat() {
+    setState(() {
+      messages = [];
+
+      currentChat = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        title: "New Chat",
+        messages: [],
+      );
+    });
+  }
+
+  Future<void> _openHistory() async {
+    final selectedChat = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AiHistoryScreen(chatHistory: chatHistory),
+      ),
+    );
+
+    if (selectedChat != null && selectedChat is ChatSession) {
+      setState(() {
+        currentChat = selectedChat;
+        messages = List<Map<String, String>>.from(selectedChat.messages);
       });
     }
   }
@@ -65,8 +166,10 @@ class _AiScreenState extends State<AiScreen> {
         elevation: 0,
         title: const Text("Study AI"),
         centerTitle: true,
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(icon: const Icon(Icons.history), onPressed: _openHistory),
+          IconButton(icon: const Icon(Icons.add), onPressed: _startNewChat),
+          const Padding(
             padding: EdgeInsets.all(12),
             child: Icon(Icons.smart_toy_outlined),
           ),
@@ -102,9 +205,9 @@ class _AiScreenState extends State<AiScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
-              itemCount: _messages.length,
+              itemCount: messages.length,
               itemBuilder: (context, index) {
-                final msg = _messages[index];
+                final msg = messages[index];
                 final isUser = msg["role"] == "user";
 
                 return Align(
