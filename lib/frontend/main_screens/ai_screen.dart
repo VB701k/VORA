@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/ai_chat_service.dart';
+import 'package:vora/backend/services/ai_chat_firestore_service.dart';
 import 'package:vora/frontend/pages/ai_history_screen.dart';
 import '../../backend/models/chat_session.dart';
 
@@ -22,15 +23,28 @@ class _AiScreenState extends State<AiScreen> {
   @override
   void initState() {
     super.initState();
+    _loadChats();
+  }
 
-    currentChat = ChatSession(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      createdAt: DateTime.now(),
-      title: "New Chat",
-      messages: [],
-    );
+  Future<void> _loadChats() async {
+    final chats = await AiChatFirestoreService.instance.loadChats();
 
-    chatHistory.add(currentChat!);
+    if (chats.isNotEmpty) {
+      setState(() {
+        chatHistory = chats;
+        currentChat = chats.first;
+        messages = List<Map<String, String>>.from(chats.first.messages);
+      });
+    } else {
+      currentChat = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        title: "New Chat",
+        messages: [],
+      );
+
+      chatHistory.add(currentChat!);
+    }
   }
 
   Future<void> _sendMessage(String text) async {
@@ -68,6 +82,8 @@ class _AiScreenState extends State<AiScreen> {
           }
         }
       });
+
+      await AiChatFirestoreService.instance.saveChat(currentChat!);
     } catch (e) {
       setState(() {
         messages.add({
