@@ -29,13 +29,9 @@ class _AiScreenState extends State<AiScreen> {
   Future<void> _loadChats() async {
     final chats = await AiChatFirestoreService.instance.loadChats();
 
-    if (chats.isNotEmpty) {
-      setState(() {
-        chatHistory = chats;
-        currentChat = chats.first;
-        messages = List<Map<String, String>>.from(chats.first.messages);
-      });
-    } else {
+    setState(() {
+      chatHistory = chats;
+
       currentChat = ChatSession(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
@@ -43,12 +39,12 @@ class _AiScreenState extends State<AiScreen> {
         messages: [],
       );
 
-      chatHistory.add(currentChat!);
-    }
+      messages = [];
+    });
   }
 
   Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty || _isLoading) return;
+    if (text.trim().isEmpty || _isLoading || currentChat == null) return;
 
     final userText = text.trim();
 
@@ -65,21 +61,23 @@ class _AiScreenState extends State<AiScreen> {
       setState(() {
         messages.add({"role": "bot", "text": reply});
 
-        if (currentChat != null) {
-          currentChat = ChatSession(
-            id: currentChat!.id,
-            createdAt: currentChat!.createdAt,
-            title: messages.first["text"] ?? "New Chat",
-            messages: List.from(messages),
-          );
+        currentChat = ChatSession(
+          id: currentChat!.id,
+          createdAt: currentChat!.createdAt,
+          title: messages.isNotEmpty
+              ? (messages.first["text"] ?? "New Chat")
+              : "New Chat",
+          messages: List<Map<String, String>>.from(messages),
+        );
 
-          final index = chatHistory.indexWhere(
-            (chat) => chat.id == currentChat!.id,
-          );
+        final index = chatHistory.indexWhere(
+          (chat) => chat.id == currentChat!.id,
+        );
 
-          if (index != -1) {
-            chatHistory[index] = currentChat!;
-          }
+        if (index != -1) {
+          chatHistory[index] = currentChat!;
+        } else {
+          chatHistory.insert(0, currentChat!);
         }
       });
 
@@ -90,7 +88,28 @@ class _AiScreenState extends State<AiScreen> {
           "role": "bot",
           "text": "Sorry, something went wrong. Please try again.",
         });
+
+        currentChat = ChatSession(
+          id: currentChat!.id,
+          createdAt: currentChat!.createdAt,
+          title: messages.isNotEmpty
+              ? (messages.first["text"] ?? "New Chat")
+              : "New Chat",
+          messages: List<Map<String, String>>.from(messages),
+        );
+
+        final index = chatHistory.indexWhere(
+          (chat) => chat.id == currentChat!.id,
+        );
+
+        if (index != -1) {
+          chatHistory[index] = currentChat!;
+        } else {
+          chatHistory.insert(0, currentChat!);
+        }
       });
+
+      await AiChatFirestoreService.instance.saveChat(currentChat!);
     } finally {
       setState(() {
         _isLoading = false;
@@ -100,7 +119,7 @@ class _AiScreenState extends State<AiScreen> {
 
   void _startNewChat() {
     setState(() {
-      messages.clear();
+      messages = [];
 
       currentChat = ChatSession(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -108,8 +127,6 @@ class _AiScreenState extends State<AiScreen> {
         title: "New Chat",
         messages: [],
       );
-
-      chatHistory.insert(0, currentChat!);
     });
   }
 
