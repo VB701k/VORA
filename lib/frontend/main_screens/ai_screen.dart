@@ -40,37 +40,6 @@ class _AiScreenState extends State<AiScreen> {
 
     setState(() {
       messages.add({"role": "user", "text": userText});
-
-      if (currentChat != null && messages.length == 1) {
-        currentChat = ChatSession(
-          id: currentChat!.id,
-          createdAt: currentChat!.createdAt,
-          title: userText,
-          messages: List.from(messages),
-        );
-
-        final index = chatHistory.indexWhere(
-          (chat) => chat.id == currentChat!.id,
-        );
-        if (index != -1) {
-          chatHistory[index] = currentChat!;
-        }
-      } else if (currentChat != null) {
-        currentChat = ChatSession(
-          id: currentChat!.id,
-          createdAt: currentChat!.createdAt,
-          title: currentChat!.title,
-          messages: List.from(messages),
-        );
-
-        final index = chatHistory.indexWhere(
-          (chat) => chat.id == currentChat!.id,
-        );
-        if (index != -1) {
-          chatHistory[index] = currentChat!;
-        }
-      }
-
       _isLoading = true;
     });
 
@@ -86,13 +55,14 @@ class _AiScreenState extends State<AiScreen> {
           currentChat = ChatSession(
             id: currentChat!.id,
             createdAt: currentChat!.createdAt,
-            title: currentChat!.title,
+            title: messages.first["text"] ?? "New Chat",
             messages: List.from(messages),
           );
 
           final index = chatHistory.indexWhere(
             (chat) => chat.id == currentChat!.id,
           );
+
           if (index != -1) {
             chatHistory[index] = currentChat!;
           }
@@ -104,22 +74,6 @@ class _AiScreenState extends State<AiScreen> {
           "role": "bot",
           "text": "Sorry, something went wrong. Please try again.",
         });
-
-        if (currentChat != null) {
-          currentChat = ChatSession(
-            id: currentChat!.id,
-            createdAt: currentChat!.createdAt,
-            title: currentChat!.title,
-            messages: List.from(messages),
-          );
-
-          final index = chatHistory.indexWhere(
-            (chat) => chat.id == currentChat!.id,
-          );
-          if (index != -1) {
-            chatHistory[index] = currentChat!;
-          }
-        }
       });
     } finally {
       setState(() {
