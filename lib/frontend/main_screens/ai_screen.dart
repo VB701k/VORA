@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vora/backend/services/ai_chat_service.dart';
+import 'package:vora/frontend/pages/ai_history_screen.dart';
+import '../../backend/models/chat_session.dart';
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
@@ -9,20 +12,105 @@ class AiScreen extends StatefulWidget {
 
 class _AiScreenState extends State<AiScreen> {
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, String>> _messages = [];
 
-  void _sendMessage(String text) {
-    if (text.trim().isEmpty) return;
+  ChatSession? currentChat;
+  List<Map<String, String>> messages = [];
+  List<ChatSession> chatHistory = [];
+
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    currentChat = ChatSession(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      createdAt: DateTime.now(),
+      title: "New Chat",
+      messages: [],
+    );
+
+    chatHistory.add(currentChat!);
+  }
+
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty || _isLoading) return;
+
+    final userText = text.trim();
 
     setState(() {
-      _messages.add({"role": "user", "text": text});
-      _messages.add({
-        "role": "bot",
-        "text": "This is where the study AI reply will appear.",
-      });
+      messages.add({"role": "user", "text": userText});
+      _isLoading = true;
     });
 
     _controller.clear();
+
+    try {
+      final reply = await AIChatService.sendMessage(userText);
+
+      setState(() {
+        messages.add({"role": "bot", "text": reply});
+
+        if (currentChat != null) {
+          currentChat = ChatSession(
+            id: currentChat!.id,
+            createdAt: currentChat!.createdAt,
+            title: messages.first["text"] ?? "New Chat",
+            messages: List.from(messages),
+          );
+
+          final index = chatHistory.indexWhere(
+            (chat) => chat.id == currentChat!.id,
+          );
+
+          if (index != -1) {
+            chatHistory[index] = currentChat!;
+          }
+        }
+      });
+    } catch (e) {
+      setState(() {
+        messages.add({
+          "role": "bot",
+          "text": "Sorry, something went wrong. Please try again.",
+        });
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _startNewChat() {
+    setState(() {
+      messages.clear();
+
+      currentChat = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        createdAt: DateTime.now(),
+        title: "New Chat",
+        messages: [],
+      );
+
+      chatHistory.insert(0, currentChat!);
+    });
+  }
+
+  Future<void> _openHistory() async {
+    final selectedChat = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AiHistoryScreen(chatHistory: chatHistory),
+      ),
+    );
+
+    if (selectedChat != null && selectedChat is ChatSession) {
+      setState(() {
+        currentChat = selectedChat;
+        messages = List<Map<String, String>>.from(selectedChat.messages);
+      });
+    }
   }
 
   Widget _suggestion(String text) {
@@ -45,8 +133,10 @@ class _AiScreenState extends State<AiScreen> {
         elevation: 0,
         title: const Text("Study AI"),
         centerTitle: true,
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(icon: const Icon(Icons.history), onPressed: _openHistory),
+          IconButton(icon: const Icon(Icons.add), onPressed: _startNewChat),
+          const Padding(
             padding: EdgeInsets.all(12),
             child: Icon(Icons.smart_toy_outlined),
           ),
@@ -55,32 +145,36 @@ class _AiScreenState extends State<AiScreen> {
       body: Column(
         children: [
           const SizedBox(height: 20),
-
           const Text(
             "Hello! I’m your VORA study assistant.\nHow can I help you?",
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
-
           const SizedBox(height: 16),
-
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               _suggestion("Explain photosynthesis"),
               _suggestion("Help with my essay"),
               _suggestion("Quiz me on History"),
             ],
           ),
-
           const SizedBox(height: 16),
-
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                "VORA is thinking...",
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
-              itemCount: _messages.length,
+              itemCount: messages.length,
               itemBuilder: (context, index) {
-                final msg = _messages[index];
+                final msg = messages[index];
                 final isUser = msg["role"] == "user";
 
                 return Align(
@@ -97,7 +191,7 @@ class _AiScreenState extends State<AiScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      msg["text"]!,
+                      msg["text"] ?? "",
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -105,7 +199,6 @@ class _AiScreenState extends State<AiScreen> {
               },
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(10),
             child: Row(
@@ -114,6 +207,9 @@ class _AiScreenState extends State<AiScreen> {
                   child: TextField(
                     controller: _controller,
                     style: const TextStyle(color: Colors.white),
+                    onSubmitted: _isLoading
+                        ? null
+                        : (value) => _sendMessage(value),
                     decoration: InputDecoration(
                       hintText: "Ask me anything...",
                       hintStyle: const TextStyle(color: Colors.white54),
@@ -128,8 +224,19 @@ class _AiScreenState extends State<AiScreen> {
                 ),
                 const SizedBox(width: 8),
                 FloatingActionButton(
-                  onPressed: () => _sendMessage(_controller.text),
-                  child: const Icon(Icons.send),
+                  onPressed: _isLoading
+                      ? null
+                      : () => _sendMessage(_controller.text),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send),
                 ),
               ],
             ),
