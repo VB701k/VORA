@@ -16,7 +16,7 @@ class MessagingService {
   Future<void> initialize() async {
     await requestPermission();
     await logDeviceToken();
-
+    
     _foregroundSubscription ??= FirebaseMessaging.onMessage.listen((
       RemoteMessage message,
     ) {
