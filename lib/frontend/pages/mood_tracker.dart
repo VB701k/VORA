@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'wellness_hub_screen.dart';
+import 'package:vora/backend/services/wellness_service.dart';
 
 class MoodTrackerCard extends StatefulWidget {
   const MoodTrackerCard({super.key});
@@ -14,6 +15,25 @@ class _MoodTrackerCardState extends State<MoodTrackerCard> {
   int selectedDay = DateTime.now().day;
 
   String? selectedMood;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMoodForSelectedDate();
+  }
+
+  Future<void> _loadMoodForSelectedDate() async {
+    try {
+      final selectedDate = DateTime(month.year, month.month, selectedDay);
+      final entry = await WellnessService.instance.getMoodForDate(selectedDate);
+
+      if (!mounted) return;
+
+      setState(() {
+        selectedMood = entry?.mood;
+      });
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,12 +63,13 @@ class _MoodTrackerCardState extends State<MoodTrackerCard> {
               Row(
                 children: [
                   IconButton(
-                    onPressed: () {
+                    onPressed: () async {
                       setState(() {
                         month = DateTime(month.year, month.month - 1, 1);
                         selectedDay = 1;
                         selectedMood = null;
                       });
+                      await _loadMoodForSelectedDate();
                     },
                     icon: const Icon(
                       Icons.chevron_left,
@@ -66,12 +87,13 @@ class _MoodTrackerCardState extends State<MoodTrackerCard> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () {
+                    onPressed: () async {
                       setState(() {
                         month = DateTime(month.year, month.month + 1, 1);
                         selectedDay = 1;
                         selectedMood = null;
                       });
+                      await _loadMoodForSelectedDate();
                     },
                     icon: const Icon(
                       Icons.chevron_right,
@@ -97,11 +119,12 @@ class _MoodTrackerCardState extends State<MoodTrackerCard> {
               _WeekStrip(
                 month: month,
                 selectedDay: selectedDay,
-                onSelect: (d) {
+                onSelect: (d) async {
                   setState(() {
                     selectedDay = d;
                     selectedMood = null;
                   });
+                  await _loadMoodForSelectedDate();
                 },
               ),
               const SizedBox(height: 14),
@@ -158,14 +181,35 @@ class _MoodTrackerCardState extends State<MoodTrackerCard> {
                 child: ElevatedButton.icon(
                   onPressed: selectedMood == null
                       ? null
-                      : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Saved mood $selectedMood for day $selectedDay',
+                      : () async {
+                          try {
+                            final selectedDate = DateTime(
+                              month.year,
+                              month.month,
+                              selectedDay,
+                            );
+                            await WellnessService.instance.saveMoodForDate(
+                              date: selectedDate,
+                              mood: selectedMood!,
+                            );
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Saved mood $selectedMood for day $selectedDay',
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to save mood: $e'),
+                              ),
+                            );
+                          }
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: WellnessColors.mint,
