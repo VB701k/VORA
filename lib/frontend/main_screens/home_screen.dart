@@ -3,6 +3,8 @@ import 'package:vora/backend/services/home_profile_service.dart';
 import 'package:vora/frontend/main_screens/task_manager_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
 import 'package:vora/frontend/pages/pomodoro_tab.dart';
+import 'package:vora/frontend/pages/weekly_analysis_screen.dart';
+import 'package:vora/frontend/pages/calendar_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -119,7 +121,7 @@ class HomeScreen extends StatelessWidget {
           title: "Notes",
           icon: Icons.note_alt_rounded,
           onTap: () {
-            //  navigate to Notes
+            // navigate to Notes
           },
         ),
 
@@ -127,29 +129,32 @@ class HomeScreen extends StatelessWidget {
           title: "Pomodoro",
           icon: Icons.timer_rounded,
           onTap: () {
-            //navigate to pomodoro
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PomodoroTab()),
             );
           },
         ),
+
         _QuickTile(
           title: "Mental Wellness",
           icon: Icons.spa_rounded,
           onTap: () {
-            //navigate to mental wellness
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const WellnessHubScreen()),
             );
           },
         ),
+
         _QuickTile(
           title: "Weekly Analytics",
           icon: Icons.bar_chart_rounded,
           onTap: () {
-            //naviagte to Weekly analytics
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WeeklyAnalysisScreen()),
+            );
           },
         ),
       ],
@@ -170,7 +175,10 @@ class HomeScreen extends StatelessWidget {
           title: "Calendar",
           icon: Icons.calendar_month_rounded,
           onTap: () {
-            // TODO: navigate to calendar screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CalendarScreen()),
+            );
           },
         ),
         _ShortcutTile(
