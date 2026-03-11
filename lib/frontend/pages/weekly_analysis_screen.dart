@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class WeeklyAnalysisScreen extends StatelessWidget {
   const WeeklyAnalysisScreen({super.key});
@@ -197,8 +198,6 @@ class _TaskCompletionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const percent = 85;
     const delta = 5;
-    const values = [18, 55, 72, 46, 78, 26, 22];
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,8 +213,8 @@ class _TaskCompletionCard extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: const [
-            Text(
+          children: [
+            const Text(
               '$percent%',
               style: TextStyle(
                 color: Colors.white,
@@ -224,12 +223,12 @@ class _TaskCompletionCard extends StatelessWidget {
                 height: 1,
               ),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Padding(
-              padding: EdgeInsets.only(bottom: 3),
+              padding: const EdgeInsets.only(bottom: 3),
               child: Text(
                 'This Week  +$delta%',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Color(0xFF7CFFB2),
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -239,14 +238,55 @@ class _TaskCompletionCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        ...List.generate(values.length, (i) {
-          final value = values[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 34,
+        const SizedBox(height: 150, child: _TaskBarChart()),
+      ],
+    );
+  }
+}
+
+class _TaskBarChart extends StatelessWidget {
+  const _TaskBarChart({super.key});
+
+  final List<double> values = const [18, 55, 72, 46, 78, 26, 22];
+
+  @override
+  Widget build(BuildContext context) {
+    return BarChart(
+      BarChartData(
+        maxY: 100,
+        minY: 0,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, meta) {
+                const labels = [
+                  'Mon',
+                  'Tue',
+                  'Wed',
+                  'Thu',
+                  'Fri',
+                  'Sat',
+                  'Sun',
+                ];
+                final i = value.toInt();
+                if (i < 0 || i >= labels.length) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     labels[i],
                     style: TextStyle(
@@ -255,35 +295,33 @@ class _TaskCompletionCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: value / 100,
-                      minHeight: 10,
-                      backgroundColor: Colors.white12,
-                      valueColor: const AlwaysStoppedAnimation(
-                        Color(0xFF6FE3FF),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '$value%',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(220),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
+          ),
+        ),
+        barGroups: List.generate(values.length, (i) {
+          final v = values[i];
+          return BarChartGroupData(
+            x: i,
+            barRods: [
+              BarChartRodData(
+                toY: v,
+                width: 18,
+                borderRadius: BorderRadius.circular(6),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    const Color(0xFF3BAEDC).withAlpha(140),
+                    const Color(0xFF6FE3FF),
+                  ],
+                ),
+              ),
+            ],
           );
         }),
-      ],
+      ),
     );
   }
 }
@@ -295,8 +333,6 @@ class _StudyHoursCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const hoursLabel = '14h 32m';
     const delta = -2;
-    const values = [2.2, 4.0, 3.4, 4.1, 2.6, 4.6, 5.6];
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,8 +348,8 @@ class _StudyHoursCard extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: const [
-            Text(
+          children: [
+            const Text(
               hoursLabel,
               style: TextStyle(
                 color: Colors.white,
@@ -322,12 +358,12 @@ class _StudyHoursCard extends StatelessWidget {
                 height: 1,
               ),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Padding(
-              padding: EdgeInsets.only(bottom: 3),
+              padding: const EdgeInsets.only(bottom: 3),
               child: Text(
                 'This week  $delta%',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Color(0xFFFF6B6B),
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -337,51 +373,88 @@ class _StudyHoursCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        ...List.generate(values.length, (i) {
-          final value = values[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 34,
+        const SizedBox(height: 180, child: _StudyLineChart()),
+      ],
+    );
+  }
+}
+
+class _StudyLineChart extends StatelessWidget {
+  const _StudyLineChart({super.key});
+
+  final List<FlSpot> spots = const [
+    FlSpot(0, 2.2),
+    FlSpot(0.5, 4.0),
+    FlSpot(1, 3.4),
+    FlSpot(1.4, 4.1),
+    FlSpot(2, 2.6),
+    FlSpot(2.4, 4.6),
+    FlSpot(3, 3.1),
+    FlSpot(3.5, 3.8),
+    FlSpot(4, 2.2),
+    FlSpot(4.6, 4.2),
+    FlSpot(5, 2.8),
+    FlSpot(5.4, 3.6),
+    FlSpot(6, 5.6),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: 6,
+        minY: 0,
+        maxY: 6,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ''];
+                final i = value.toInt();
+                if (i < 0 || i >= labels.length) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     labels[i],
                     style: TextStyle(
-                      color: Colors.white.withAlpha(220),
+                      color: const Color(0xFF6FE3FF).withAlpha(230),
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: value / 6,
-                      minHeight: 10,
-                      backgroundColor: Colors.white12,
-                      valueColor: const AlwaysStoppedAnimation(
-                        Color(0xFFB4F0FF),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '${value.toStringAsFixed(1)}h',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(220),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        }),
-      ],
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            barWidth: 2.2,
+            color: const Color(0xFFB4F0FF),
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
+      ),
     );
   }
 }
