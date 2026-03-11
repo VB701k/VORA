@@ -1,25 +1,32 @@
-class WeeklyAnalysisModel {
-  final String weekLabel;
-  final String mostProductiveDay;
-  final int completionPercent;
-  final int completionDeltaPercent;
-  final List<double> taskCompletionByDay;
-  final String totalStudyLabel;
-  final int studyDeltaPercent;
-  final List<double> studyHoursByDay;
-  final List<String> moodsByDay;
-  final String moodInsight;
+class WeeklyAnalysisData {
+  final DateTime weekStart;
+  final DateTime weekEnd;
 
-  const WeeklyAnalysisModel({
-    required this.weekLabel,
+  final String mostProductiveDay;
+  final int taskCompletionPercent;
+  final int taskCompletionDeltaPercent;
+
+  final List<double> taskCompletionByDay; // 7 values, Mon -> Sun
+  final String studyHoursLabel;
+  final int studyHoursDeltaPercent;
+  final List<double> studyHoursByDay; // 7 values, Mon -> Sun
+
+  final List<String> moodEmojis; // 7 values, Mon -> Sun
+  final String moodInsightTitle;
+  final String moodInsightBody;
+
+  const WeeklyAnalysisData({
+    required this.weekStart,
+    required this.weekEnd,
     required this.mostProductiveDay,
-    required this.completionPercent,
-    required this.completionDeltaPercent,
+    required this.taskCompletionPercent,
+    required this.taskCompletionDeltaPercent,
     required this.taskCompletionByDay,
-    required this.totalStudyLabel,
-    required this.studyDeltaPercent,
+    required this.studyHoursLabel,
+    required this.studyHoursDeltaPercent,
     required this.studyHoursByDay,
-    required this.moodsByDay,
-    required this.moodInsight,
+    required this.moodEmojis,
+    required this.moodInsightTitle,
+    required this.moodInsightBody,
   });
 }
