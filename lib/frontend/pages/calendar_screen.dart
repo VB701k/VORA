@@ -62,8 +62,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return 'exam';
   }
 
-  Future<void> _markCompleted(CalendarSchedule item) async {
-    await _service.markCompleted(item.id);
+  Future<void> _toggleCompleted(CalendarSchedule item) async {
+    await _service.toggleCompleted(item.id);
     await _refreshSchedules();
   }
 
@@ -276,7 +276,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _ScheduleCard(
                               schedule: item,
-                              onComplete: () => _markCompleted(item),
+                              onComplete: () => _toggleCompleted(item),
                             ),
                           );
                         },
@@ -719,7 +719,7 @@ class _ScheduleCard extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: schedule.isCompleted ? null : onComplete,
+                      onPressed: onComplete,
                       icon: Icon(
                         schedule.isCompleted
                             ? Icons.check_circle

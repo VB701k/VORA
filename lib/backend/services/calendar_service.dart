@@ -3,8 +3,92 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vora/backend/services/notification_service.dart';
 import 'package:vora/backend/models/calendar_schedule.dart';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
 class CalendarService {
   static const String _manualSchedulesKey = 'manual_schedules_v1';
+
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  bool _schedulerReady = false;
+
+  Future<void> _initSchedulerIfNeeded() async {
+    if (_schedulerReady) return;
+
+    tz.initializeTimeZones();
+
+    final timezoneName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timezoneName));
+
+    _schedulerReady = true;
+  }
+
+  NotificationDetails _deadlineNotificationDetails() {
+    const androidDetails = AndroidNotificationDetails(
+      'deadline_channel',
+      'Deadline Notifications',
+      channelDescription: 'Deadline and reminder notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const iosDetails = DarwinNotificationDetails();
+
+    return const NotificationDetails(android: androidDetails, iOS: iosDetails);
+  }
+
+  int _beforeDeadlineNotificationId(String id) => id.hashCode.abs() + 1000;
+
+  int _deadlineNotificationId(String id) => id.hashCode.abs() + 2000;
+
+  Future<void> _scheduleNotifications(CalendarSchedule schedule) async {
+    await _initSchedulerIfNeeded();
+
+    final now = DateTime.now();
+    final deadline = schedule.deadline;
+    final oneDayBefore = deadline.subtract(const Duration(days: 1));
+
+    try {
+      // Schedule 1-day-before reminder
+      if (oneDayBefore.isAfter(now)) {
+        await _notificationsPlugin.zonedSchedule(
+          _beforeDeadlineNotificationId(schedule.id),
+          'Reminder: ${schedule.title}',
+          'This task is due in 1 day.',
+          tz.TZDateTime.from(oneDayBefore, tz.local),
+          _deadlineNotificationDetails(),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
+
+      // Schedule exact-deadline notification
+      if (deadline.isAfter(now)) {
+        await _notificationsPlugin.zonedSchedule(
+          _deadlineNotificationId(schedule.id),
+          'Deadline reached: ${schedule.title}',
+          'Your deadline has arrived.',
+          tz.TZDateTime.from(deadline, tz.local),
+          _deadlineNotificationDetails(),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
+    } catch (e) {
+      print('Notification scheduling failed: $e');
+    }
+  }
+
+  Future<void> _cancelScheduledNotifications(String id) async {
+    await _notificationsPlugin.cancel(_beforeDeadlineNotificationId(id));
+    await _notificationsPlugin.cancel(_deadlineNotificationId(id));
+  }
 
   Future<List<CalendarSchedule>> getAllSchedules() async {
     final courseworkSchedules = _loadFromCourseworkBreakdown();
@@ -32,11 +116,13 @@ class CalendarService {
     final startOfWeek = selectedDay.subtract(
       Duration(days: selectedDay.weekday % 7),
     );
+
     final weekStart = DateTime(
       startOfWeek.year,
       startOfWeek.month,
       startOfWeek.day,
     );
+
     final weekEnd = weekStart.add(const Duration(days: 7));
 
     return all.where((item) {
@@ -63,20 +149,19 @@ class CalendarService {
     final encoded = items.map((e) => jsonEncode(e.toJson())).toList();
     await prefs.setStringList(_manualSchedulesKey, encoded);
 
-    await NotificationService().scheduleDeadlineReminder(
-      id: schedule.id.hashCode,
-      title: schedule.title,
-      deadline: schedule.deadline,
-    );
+    if (!schedule.isCompleted) {
+      await _scheduleNotifications(schedule);
+    }
   }
 
-  Future<void> markCompleted(String id) async {
+  Future<void> toggleCompleted(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final items = await _loadManualSchedules();
 
     final updated = items.map((e) {
       if (e.id == id) {
-        return e.copyWith(isCompleted: true);
+        final newValue = !e.isCompleted;
+        return e.copyWith(isCompleted: newValue);
       }
       return e;
     }).toList();
@@ -84,15 +169,24 @@ class CalendarService {
     final encoded = updated.map((e) => jsonEncode(e.toJson())).toList();
     await prefs.setStringList(_manualSchedulesKey, encoded);
 
-    await NotificationService().cancelNotification(id.hashCode);
+    final changedItem = updated.firstWhere((e) => e.id == id);
+
+    if (changedItem.isCompleted) {
+      await _cancelScheduledNotifications(id);
+    } else {
+      await _scheduleNotifications(changedItem);
+    }
   }
 
   Future<void> checkExpiredAndNotify() async {
     final all = await getAllSchedules();
 
     for (final item in all) {
-      if (item.isExpired) {
-        await NotificationService().showExpiredNotification(title: item.title);
+      if (item.isExpired && !item.isCompleted) {
+        await NotificationService().showNotification(
+          title: 'Missed deadline',
+          body: '${item.title} has expired.',
+        );
       }
     }
   }
@@ -105,8 +199,6 @@ class CalendarService {
   }
 
   List<CalendarSchedule> _loadFromCourseworkBreakdown() {
-    // TEMPORARY SAFE VERSION
-    // Return empty list for now until coursework_breakdown data is connected.
     return [];
   }
 }
