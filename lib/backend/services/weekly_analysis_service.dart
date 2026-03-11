@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vora/backend/models/app_task.dart';
-import 'package:vora/backend/models/weekly_analysis_data.dart';
+import 'package:vora/backend/models/weekly_analysis_model.dart';
 
 class WeeklyAnalysisService {
   WeeklyAnalysisService._();
