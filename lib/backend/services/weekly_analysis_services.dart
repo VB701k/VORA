@@ -49,19 +49,12 @@ class WeeklyAnalysisService {
       prevWeekEnd,
     );
 
-    final taskCompletionByDay = _buildTaskCompletionByDay(
-      currentTasks,
-      weekStart,
-    );
-    final mostProductiveDay = _mostProductiveDayFromTasks(
-      currentTasks,
-      weekStart,
-    );
+    final taskChartValues = _buildTaskCompletionByDay(currentTasks);
 
+    final totalTasks = currentTasks.length;
+    final completedTasks = currentTasks.where((t) => t.isCompleted).length;
+    final pendingTasks = totalTasks - completedTasks;
     final taskCompletionPercent = _taskCompletionPercent(currentTasks);
-    final previousTaskCompletionPercent = _taskCompletionPercent(previousTasks);
-    final taskCompletionDeltaPercent =
-        taskCompletionPercent - previousTaskCompletionPercent;
 
     final totalStudyMinutes = currentPomodoroMinutes.fold<int>(
       0,
@@ -72,34 +65,54 @@ class WeeklyAnalysisService {
       (a, b) => a + b.round(),
     );
 
-    final studyHoursLabel = _formatMinutes(totalStudyMinutes);
-    final studyHoursDeltaPercent = _percentageDelta(
+    final studyDeltaPercent = _percentageDelta(
       previousTotalStudyMinutes,
       totalStudyMinutes,
     );
 
-    final moodEmojis = _buildMoodEmojiRow(currentMoods, weekStart);
-    final moodInsight = _buildMoodInsight(currentMoods, weekStart);
+    final studyChartValues = currentPomodoroMinutes;
+
+    final moodInsight = _buildMoodInsight(currentMoods);
+
+    final taskSummary = totalTasks == 0
+        ? 'No tasks were scheduled this week.'
+        : 'You completed $completedTasks out of $totalTasks tasks this week.';
+
+    final studySummary = totalStudyMinutes == 0
+        ? 'No study sessions were recorded this week.'
+        : 'You studied ${_formatMinutes(totalStudyMinutes)} this week.';
+
+    final moodSummary = moodInsight.$2;
+
+    final motivationalMessage = _buildMotivationalMessage(
+      completedTasks: completedTasks,
+      totalTasks: totalTasks,
+      studyDeltaPercent: studyDeltaPercent,
+    );
 
     return WeeklyAnalysisData(
       weekStart: weekStart,
       weekEnd: weekEnd,
-      mostProductiveDay: mostProductiveDay,
+      totalTasks: totalTasks,
+      completedTasks: completedTasks,
+      pendingTasks: pendingTasks,
       taskCompletionPercent: taskCompletionPercent,
-      taskCompletionDeltaPercent: taskCompletionDeltaPercent,
-      taskCompletionByDay: taskCompletionByDay,
-      studyHoursLabel: studyHoursLabel,
-      studyHoursDeltaPercent: studyHoursDeltaPercent,
-      studyHoursByDay: currentPomodoroMinutes.map((e) => e / 60.0).toList(),
-      moodEmojis: moodEmojis,
-      moodInsightTitle: moodInsight.$1,
-      moodInsightBody: moodInsight.$2,
+      taskChartValues: taskChartValues,
+      taskSummary: taskSummary,
+      currentWeekStudyMinutes: totalStudyMinutes,
+      previousWeekStudyMinutes: previousTotalStudyMinutes,
+      studyDeltaPercent: studyDeltaPercent,
+      studyChartValues: studyChartValues,
+      studySummary: studySummary,
+      moodSummary: moodSummary,
+      motivationalMessage: motivationalMessage,
+      moodEmojis: _buildMoodEmojiRow(currentMoods),
     );
   }
 
   DateTime _startOfWeek(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
-    final weekday = normalized.weekday; // Mon=1 ... Sun=7
+    final weekday = normalized.weekday;
     return normalized.subtract(Duration(days: weekday - 1));
   }
 
@@ -132,7 +145,7 @@ class WeeklyAnalysisService {
 
         if (ts is Timestamp && mood.isNotEmpty) {
           final dt = ts.toDate();
-          final dayIndex = dt.weekday - 1; // Mon=0 ... Sun=6
+          final dayIndex = dt.weekday - 1;
           result[dayIndex] = mood;
         }
       }
@@ -167,22 +180,18 @@ class WeeklyAnalysisService {
           final dt = ts.toDate();
           final dayIndex = dt.weekday - 1;
           final minutes = (minutesRaw as num).toDouble();
+
           if (dayIndex >= 0 && dayIndex < 7) {
             values[dayIndex] += minutes;
           }
         }
       }
-    } catch (_) {
-      // no pomodoro data yet -> keep zeros
-    }
+    } catch (_) {}
 
     return values;
   }
 
-  List<double> _buildTaskCompletionByDay(
-    List<AppTask> tasks,
-    DateTime weekStart,
-  ) {
+  List<double> _buildTaskCompletionByDay(List<AppTask> tasks) {
     final totalByDay = List<int>.filled(7, 0);
     final completedByDay = List<int>.filled(7, 0);
 
@@ -202,39 +211,6 @@ class WeeklyAnalysisService {
     });
   }
 
-  String _mostProductiveDayFromTasks(List<AppTask> tasks, DateTime weekStart) {
-    final completedByDay = List<int>.filled(7, 0);
-
-    for (final task in tasks) {
-      if (!task.isCompleted) continue;
-      final index = task.dueDate.weekday - 1;
-      if (index >= 0 && index < 7) {
-        completedByDay[index]++;
-      }
-    }
-
-    int bestIndex = 0;
-    int bestValue = completedByDay[0];
-
-    for (int i = 1; i < completedByDay.length; i++) {
-      if (completedByDay[i] > bestValue) {
-        bestValue = completedByDay[i];
-        bestIndex = i;
-      }
-    }
-
-    const labels = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    return labels[bestIndex];
-  }
-
   int _taskCompletionPercent(List<AppTask> tasks) {
     if (tasks.isEmpty) return 0;
     final completed = tasks.where((t) => t.isCompleted).length;
@@ -252,7 +228,7 @@ class WeeklyAnalysisService {
     return '${hours}h ${mins}m';
   }
 
-  List<String> _buildMoodEmojiRow(Map<int, String> moods, DateTime weekStart) {
+  List<String> _buildMoodEmojiRow(Map<int, String> moods) {
     return List<String>.generate(7, (i) {
       final raw = moods[i];
       return _moodToEmoji(raw);
@@ -301,10 +277,7 @@ class WeeklyAnalysisService {
     return 2;
   }
 
-  (String, String) _buildMoodInsight(
-    Map<int, String> moods,
-    DateTime weekStart,
-  ) {
+  (String, String) _buildMoodInsight(Map<int, String> moods) {
     if (moods.isEmpty) {
       return (
         'No mood pattern yet.',
@@ -337,5 +310,29 @@ class WeeklyAnalysisService {
       'Your mood seems to dip on ${labels[lowestIndex]}.',
       'Consider scheduling a lighter study load or a short reset break on that day.',
     );
+  }
+
+  String _buildMotivationalMessage({
+    required int completedTasks,
+    required int totalTasks,
+    required int studyDeltaPercent,
+  }) {
+    if (totalTasks == 0 && studyDeltaPercent <= 0) {
+      return 'A fresh week is a new chance to build momentum.';
+    }
+
+    if (completedTasks == totalTasks && totalTasks > 0) {
+      return 'Amazing work — you completed every task this week.';
+    }
+
+    if (studyDeltaPercent > 0) {
+      return 'Nice progress — your study time improved from last week.';
+    }
+
+    if (completedTasks > 0) {
+      return 'Good effort this week — keep pushing forward.';
+    }
+
+    return 'Start small, stay consistent, and build your rhythm.';
   }
 }
