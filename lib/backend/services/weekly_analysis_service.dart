@@ -4,6 +4,19 @@ import 'package:vora/backend/models/app_task.dart';
 import 'lib/backend/models/weekly_analysis_model.dart';
 
 class WeeklyAnalysisService {
+  class WeeklyAnalysisData {
+  final int completedTasks;
+  final int totalTasks;
+  final double studyHours;
+  final List<String> moodEmojis;
+
+  WeeklyAnalysisData({
+    required this.completedTasks,
+    required this.totalTasks,
+    required this.studyHours,
+    required this.moodEmojis,
+  });
+}
   WeeklyAnalysisService._();
   static final WeeklyAnalysisService instance = WeeklyAnalysisService._();
 
