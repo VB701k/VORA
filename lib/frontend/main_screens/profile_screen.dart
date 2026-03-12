@@ -8,7 +8,14 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: const Center(
-        child: CircleAvatar(radius: 36, child: Icon(Icons.person)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(radius: 36, child: Icon(Icons.person)),
+            SizedBox(height: 8),
+            Text('Your Name'),
+          ],
+        ),
       ),
     );
   }
