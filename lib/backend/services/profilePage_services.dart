@@ -29,4 +29,8 @@ class ProfilePageServices {
 
     return age?.toString() ?? '-';
   }
+
+  Future<void> signOut() {
+    return _auth.signOut();
+  }
 }

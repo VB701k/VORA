@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/profilePage_services.dart';
+import 'package:vora/frontend/pages/login_page.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -35,7 +36,19 @@ class ProfileScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: () {}, child: const Text('Logout')),
+            ElevatedButton(
+              onPressed: () async {
+                await profileService.signOut();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+                }
+              },
+              child: const Text('Logout'),
+            ),
           ],
         ),
       ),
