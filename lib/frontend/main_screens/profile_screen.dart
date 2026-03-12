@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -5,17 +6,26 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final name = (user?.displayName ?? '').trim();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: const Center(
+      backgroundColor: const Color(0xFF071A1F),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        backgroundColor: const Color(0xFF071A1F),
+      ),
+      body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(radius: 36, child: Icon(Icons.person)),
-            SizedBox(height: 8),
-            Text('Your Name'),
-            Text('you@example.com'),
-            Text('Age: 25'),
+            const CircleAvatar(radius: 36, child: Icon(Icons.person)),
+            const SizedBox(height: 8),
+            Text(name),
+            const Text('you@example.com'),
+            const Text('Age: 25'),
+            const SizedBox(height: 12),
+            ElevatedButton(onPressed: () {}, child: const Text('Logout')),
           ],
         ),
       ),
