@@ -190,6 +190,34 @@ class WeeklyAnalysisService {
     return values;
   }
 
+  Future<void> saveWeeklyAnalysis(WeeklyAnalysisData data) async {
+    await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('weekly_analysis')
+        .doc(data.weekStart.toIso8601String())
+        .set({
+          'weekStart': Timestamp.fromDate(data.weekStart),
+          'weekEnd': Timestamp.fromDate(data.weekEnd),
+
+          'totalTasks': data.totalTasks,
+          'completedTasks': data.completedTasks,
+          'pendingTasks': data.pendingTasks,
+          'taskCompletionPercent': data.taskCompletionPercent,
+          'taskChartValues': data.taskChartValues,
+
+          'currentWeekStudyMinutes': data.currentWeekStudyMinutes,
+          'previousWeekStudyMinutes': data.previousWeekStudyMinutes,
+          'studyDeltaPercent': data.studyDeltaPercent,
+          'studyChartValues': data.studyChartValues,
+
+          'moodEmojis': data.moodEmojis,
+          'moodSummary': data.moodSummary,
+
+          'motivationalMessage': data.motivationalMessage,
+        });
+  }
+
   List<double> _buildTaskChart(List<AppTask> tasks) {
     final values = List<double>.filled(7, 0);
 
