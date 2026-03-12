@@ -380,7 +380,7 @@ class _StudyHoursCard extends StatelessWidget {
 }
 
 class _StudyLineChart extends StatelessWidget {
-  const _StudyLineChart({super.key});
+  const _StudyLineChart();
 
   final List<FlSpot> spots = const [
     FlSpot(0, 2.2),
