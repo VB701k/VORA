@@ -8,6 +8,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final name = (user?.displayName ?? '').trim();
+    final email = (user?.email ?? '').trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFF071A1F),
@@ -22,7 +23,7 @@ class ProfileScreen extends StatelessWidget {
             const CircleAvatar(radius: 36, child: Icon(Icons.person)),
             const SizedBox(height: 8),
             Text(name),
-            const Text('you@example.com'),
+            Text(email),
             const Text('Age: 25'),
             const SizedBox(height: 12),
             ElevatedButton(onPressed: () {}, child: const Text('Logout')),
