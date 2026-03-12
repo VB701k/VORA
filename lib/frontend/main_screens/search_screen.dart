@@ -60,19 +60,32 @@ class _SearchScreenState extends State<SearchScreen> {
               decoration: InputDecoration(
                 hintText: "Search features...",
                 hintStyle: const TextStyle(color: Colors.white54),
-                prefixIcon: const Icon(Icons.search, color: Colors.white),
+
+                // BACK BUTTON
+                prefixIcon: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+
+                suffixIcon: const Icon(Icons.search, color: Colors.white),
+
                 filled: true,
                 fillColor: const Color(0xFF172B35),
+
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
+
               onChanged: (value) {
                 setState(() {
                   query = value;
                 });
               },
+
               onSubmitted: (value) {
                 final match = features.keys.firstWhere(
                   (f) => f.contains(value.toLowerCase()),
