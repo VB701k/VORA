@@ -36,7 +36,6 @@ class WeeklyAnalysisService {
     final prevWeekEnd = weekEnd.subtract(const Duration(days: 7));
 
     final currentTasks = await _fetchTasksBetween(weekStart, weekEnd);
-    final previousTasks = await _fetchTasksBetween(prevWeekStart, prevWeekEnd);
 
     final currentMoods = await _fetchMoodsBetween(weekStart, weekEnd);
 

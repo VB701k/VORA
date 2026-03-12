@@ -94,7 +94,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _dialogField(durationController, 'Duration'),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: selectedType,
+                      initialValue: selectedType,
                       dropdownColor: _C.card,
                       style: const TextStyle(color: _C.text),
                       decoration: _dialogDecoration('Type'),

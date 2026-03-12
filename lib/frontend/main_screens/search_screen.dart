@@ -3,7 +3,7 @@ import 'package:vora/frontend/pages/calendar_screen.dart';
 import 'package:vora/frontend/pages/weekly_analysis_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
 import 'package:vora/frontend/pages/pomodoro_tab.dart';
-import 'package:vora/frontend/main_screens/task_manager_screen.dart';
+import 'package:vora/frontend/pages/task_manager_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final VoidCallback? onBackToHome;
@@ -189,7 +189,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       )
                     : ListView.separated(
                         itemCount: suggestions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final item = suggestions[index];
                           return InkWell(
