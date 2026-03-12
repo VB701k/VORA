@@ -1,22 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vora/backend/models/app_task.dart';
-import 'lib/backend/models/weekly_analysis_model.dart';
+import 'package:vora/backend/models/weekly_analysis_model.dart';
 
 class WeeklyAnalysisService {
-  class WeeklyAnalysisData {
-  final int completedTasks;
-  final int totalTasks;
-  final double studyHours;
-  final List<String> moodEmojis;
-
-  WeeklyAnalysisData({
-    required this.completedTasks,
-    required this.totalTasks,
-    required this.studyHours,
-    required this.moodEmojis,
-  });
-}
   WeeklyAnalysisService._();
   static final WeeklyAnalysisService instance = WeeklyAnalysisService._();
 
@@ -62,14 +49,8 @@ class WeeklyAnalysisService {
       prevWeekEnd,
     );
 
-    final taskCompletionByDay = _buildTaskCompletionByDay(
-      currentTasks,
-      weekStart,
-    );
-    final mostProductiveDay = _mostProductiveDayFromTasks(
-      currentTasks,
-      weekStart,
-    );
+    final taskCompletionByDay = _buildTaskCompletionByDay(currentTasks);
+    final mostProductiveDay = _mostProductiveDayFromTasks(currentTasks);
 
     final taskCompletionPercent = _taskCompletionPercent(currentTasks);
     final previousTaskCompletionPercent = _taskCompletionPercent(previousTasks);
@@ -91,8 +72,8 @@ class WeeklyAnalysisService {
       totalStudyMinutes,
     );
 
-    final moodEmojis = _buildMoodEmojiRow(currentMoods, weekStart);
-    final moodInsight = _buildMoodInsight(currentMoods, weekStart);
+    final moodEmojis = _buildMoodEmojiRow(currentMoods);
+    final moodInsight = _buildMoodInsight(currentMoods);
 
     return WeeklyAnalysisData(
       weekStart: weekStart,
@@ -180,22 +161,20 @@ class WeeklyAnalysisService {
           final dt = ts.toDate();
           final dayIndex = dt.weekday - 1;
           final minutes = (minutesRaw as num).toDouble();
+
           if (dayIndex >= 0 && dayIndex < 7) {
             values[dayIndex] += minutes;
           }
         }
       }
     } catch (_) {
-      // no pomodoro data yet -> keep zeros
+      // keep zeros if no data
     }
 
     return values;
   }
 
-  List<double> _buildTaskCompletionByDay(
-    List<AppTask> tasks,
-    DateTime weekStart,
-  ) {
+  List<double> _buildTaskCompletionByDay(List<AppTask> tasks) {
     final totalByDay = List<int>.filled(7, 0);
     final completedByDay = List<int>.filled(7, 0);
 
@@ -215,7 +194,7 @@ class WeeklyAnalysisService {
     });
   }
 
-  String _mostProductiveDayFromTasks(List<AppTask> tasks, DateTime weekStart) {
+  String _mostProductiveDayFromTasks(List<AppTask> tasks) {
     final completedByDay = List<int>.filled(7, 0);
 
     for (final task in tasks) {
@@ -245,6 +224,7 @@ class WeeklyAnalysisService {
       'Saturday',
       'Sunday',
     ];
+
     return labels[bestIndex];
   }
 
@@ -265,7 +245,7 @@ class WeeklyAnalysisService {
     return '${hours}h ${mins}m';
   }
 
-  List<String> _buildMoodEmojiRow(Map<int, String> moods, DateTime weekStart) {
+  List<String> _buildMoodEmojiRow(Map<int, String> moods) {
     return List<String>.generate(7, (i) {
       final raw = moods[i];
       return _moodToEmoji(raw);
@@ -314,10 +294,7 @@ class WeeklyAnalysisService {
     return 2;
   }
 
-  (String, String) _buildMoodInsight(
-    Map<int, String> moods,
-    DateTime weekStart,
-  ) {
+  (String, String) _buildMoodInsight(Map<int, String> moods) {
     if (moods.isEmpty) {
       return (
         'No mood pattern yet.',
