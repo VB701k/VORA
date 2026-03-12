@@ -121,7 +121,7 @@ class HomeScreen extends StatelessWidget {
           title: "Notes",
           icon: Icons.note_alt_rounded,
           onTap: () {
-            //  navigate to Notes
+            // navigate to Notes
           },
         ),
 
@@ -129,29 +129,28 @@ class HomeScreen extends StatelessWidget {
           title: "Pomodoro",
           icon: Icons.timer_rounded,
           onTap: () {
-            //navigate to pomodoro
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PomodoroTab()),
             );
           },
         ),
+
         _QuickTile(
           title: "Mental Wellness",
           icon: Icons.spa_rounded,
           onTap: () {
-            //navigate to mental wellness
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const WellnessHubScreen()),
             );
           },
         ),
+
         _QuickTile(
           title: "Weekly Analytics",
           icon: Icons.bar_chart_rounded,
           onTap: () {
-            //naviagte to Weekly analytics
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const WeeklyAnalysisScreen()),
