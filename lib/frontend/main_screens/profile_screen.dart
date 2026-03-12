@@ -14,6 +14,8 @@ class ProfileScreen extends StatelessWidget {
             CircleAvatar(radius: 36, child: Icon(Icons.person)),
             SizedBox(height: 8),
             Text('Your Name'),
+            Text('you@example.com'),
+            Text('Age: 25'),
           ],
         ),
       ),
