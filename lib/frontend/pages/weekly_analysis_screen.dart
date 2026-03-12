@@ -245,7 +245,7 @@ class _TaskCompletionCard extends StatelessWidget {
 }
 
 class _TaskBarChart extends StatelessWidget {
-  const _TaskBarChart({super.key});
+  const _TaskBarChart();
 
   final List<double> values = const [18, 55, 72, 46, 78, 26, 22];
 
