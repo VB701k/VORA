@@ -30,6 +30,18 @@ class ProfilePageServices {
     return age?.toString() ?? '-';
   }
 
+  Future<Map<String, dynamic>> fetchMyProfile() async {
+    final name = await getUserName();
+    final email = getUserEmail();
+    final age = await getUserAge();
+
+    return {
+      'name': name.isNotEmpty ? name : 'VORA Student',
+      'email': email.isNotEmpty ? email : 'No email available',
+      'age': age,
+    };
+  }
+
   Future<void> signOut() {
     return _auth.signOut();
   }
