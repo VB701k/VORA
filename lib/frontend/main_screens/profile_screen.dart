@@ -7,7 +7,9 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: const Center(child: Text('Profile page')),
+      body: const Center(
+        child: CircleAvatar(radius: 36, child: Icon(Icons.person)),
+      ),
     );
   }
 }
