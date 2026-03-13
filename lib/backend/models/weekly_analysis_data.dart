@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class WeeklyAnalysisData {
   final DateTime weekStart;
   final DateTime weekEnd;
@@ -6,18 +8,17 @@ class WeeklyAnalysisData {
   final int completedTasks;
   final int pendingTasks;
   final int taskCompletionPercent;
-  final List<double> taskChartValues; // Mon-Sun completed count
+  final List<double> taskChartValues;
   final String taskSummary;
 
   final int currentWeekStudyMinutes;
   final int previousWeekStudyMinutes;
   final int studyDeltaPercent;
-  final List<double> studyChartValues; // Mon-Sun hours
+  final List<double> studyChartValues;
   final String studySummary;
 
-  final List<String> moodEmojis; // Mon-Sun
+  final List<String> moodEmojis;
   final String moodSummary;
-
   final String motivationalMessage;
 
   const WeeklyAnalysisData({
@@ -44,4 +45,34 @@ class WeeklyAnalysisData {
     final m = currentWeekStudyMinutes % 60;
     return '${h}h ${m}m';
   }
-}
+
+  String get weekId {
+    final y = weekStart.year.toString().padLeft(4, '0');
+    final m = weekStart.month.toString().padLeft(2, '0');
+    final d = weekStart.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'weekStart': Timestamp.fromDate(weekStart),
+      'weekEnd': Timestamp.fromDate(weekEnd),
+      'totalTasks': totalTasks,
+      'completedTasks': completedTasks,
+      'pendingTasks': pendingTasks,
+      'taskCompletionPercent': taskCompletionPercent,
+      'taskChartValues': taskChartValues,
+      'taskSummary': taskSummary,
+      'currentWeekStudyMinutes': currentWeekStudyMinutes,
+      'previousWeekStudyMinutes': previousWeekStudyMinutes,
+      'studyDeltaPercent': studyDeltaPercent,
+      'studyChartValues': studyChartValues,
+      'studySummary': studySummary,
+      'moodEmojis': moodEmojis,
+      'moodSummary': moodSummary,
+      'motivationalMessage': motivationalMessage,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  
