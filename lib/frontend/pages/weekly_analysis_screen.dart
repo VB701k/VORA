@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'task_progress_detail_page.dart';
-import 'study_time_detail_page.dart';
-import 'mood_pattern_detail_page.dart';
+import 'package:vora/frontend/pages/task_progress_detail_page.dart';
+import 'package:vora/frontend/pages/study_time_detail_page.dart';
 
 class WeeklyAnalysisScreen extends StatelessWidget {
   const WeeklyAnalysisScreen({super.key});
