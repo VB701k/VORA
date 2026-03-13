@@ -42,7 +42,19 @@ class WeeklyAnalysisScreen extends StatelessWidget {
                       "See how much of your weekly work was completed and how it changed compared to last week.",
                 ),
                 const SizedBox(height: 12),
-                const _TaskCompletionCard(),
+
+                /// TASK PROGRESS CLICK
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TaskProgressDetailPage(),
+                      ),
+                    );
+                  },
+                  child: const _TaskCompletionCard(),
+                ),
 
                 const SizedBox(height: 20),
 
@@ -325,7 +337,7 @@ class _TaskCompletionContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Task completion rate",
+                    "completion rate",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
