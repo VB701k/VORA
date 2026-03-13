@@ -64,8 +64,19 @@ class WeeklyAnalysisScreen extends StatelessWidget {
                       "Track how many hours you studied this week and how your study pattern changed day by day.",
                 ),
                 const SizedBox(height: 12),
-                const _StudyHoursCard(),
 
+                /// STUDY TIME CLICK
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StudyTimeDetailPage(),
+                      ),
+                    );
+                  },
+                  child: const _StudyHoursCard(),
+                ),
                 const SizedBox(height: 20),
 
                 const _SectionHeading(
