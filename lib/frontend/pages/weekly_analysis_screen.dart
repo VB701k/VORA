@@ -396,7 +396,7 @@ class _TaskCompletionContent extends StatelessWidget {
 }
 
 class _TaskBarChart extends StatelessWidget {
-  const _TaskBarChart({super.key});
+  const _TaskBarChart();
 
   final List<double> values = const [18, 55, 72, 46, 78, 26, 22];
 
@@ -561,7 +561,7 @@ class _StudyHoursContent extends StatelessWidget {
 }
 
 class _StudyLineChart extends StatelessWidget {
-  const _StudyLineChart({super.key});
+  const _StudyLineChart();
 
   final List<FlSpot> spots = const [
     FlSpot(0, 2.2),

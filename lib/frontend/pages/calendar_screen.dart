@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../backend/models/calendar_schedule.dart';
-import '../../backend/services/calendar_service.dart';
+import '../../backend/services/calendar_service.dart' as cal_service;
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -11,7 +11,7 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  final CalendarService _service = CalendarService();
+  final cal_service.CalendarService _service = cal_service.CalendarService();
 
   int _viewIndex = 0; // 0=Month, 1=Week, 2=Day
   int _filterIndex = 1; // 0=Classes, 1=Assignments, 2=Exams
@@ -31,9 +31,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _refreshSchedules() async {
     List<CalendarSchedule> items;
-    List<CalendarSchedule> monthItems = await _service.getSchedulesForMonth(
-      _currentMonth,
-    );
+    final List<CalendarSchedule> monthItems = await _service
+        .getSchedulesForMonth(_currentMonth);
 
     if (_viewIndex == 0) {
       items = await _service.getSchedulesForMonth(_currentMonth);
@@ -95,7 +94,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _dialogField(durationController, 'Duration'),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: selectedType,
+                      initialValue: selectedType,
                       dropdownColor: _C.card,
                       style: const TextStyle(color: _C.text),
                       decoration: _dialogDecoration('Type'),
@@ -160,7 +159,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: Navigator.of(context).pop,
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -766,7 +765,6 @@ class _ScheduleCard extends StatelessWidget {
   Widget _metaRow(IconData icon, String text) {
     return Row(
       children: [
-        const SizedBox(width: 0),
         Icon(icon, size: 16, color: _C.textDim),
         const SizedBox(width: 8),
         Expanded(
