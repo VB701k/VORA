@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../backend/models/calendar_schedule.dart';
-import '../../backend/services/calendar_service.dart' as cal_service;
+import 'package:vora/backend/models/calendar_schedule.dart';
+import 'package:vora/backend/services/calendar_service.dart' as cal_service;
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
