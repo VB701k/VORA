@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vora/backend/models/app_task.dart';
-import 'package:vora/backend/models/weekly_analysis_model.dart';
+import 'package:vora/backend/models/weekly_analysis_data.dart';
 
 class WeeklyAnalysisService {
   WeeklyAnalysisService._();
@@ -25,82 +25,123 @@ class WeeklyAnalysisService {
   CollectionReference<Map<String, dynamic>> get _pomodoroCol =>
       _db.collection('users').doc(_uid).collection('pomodoro_sessions');
 
-  Future<WeeklyAnalysisData> getWeeklyAnalysis({DateTime? anchorDate}) async {
+  CollectionReference<Map<String, dynamic>> get _weeklyAnalysisCol =>
+      _db.collection('users').doc(_uid).collection('weekly_analysis');
+
+  Future<WeeklyAnalysisData> getOrGenerateWeeklyAnalysis({
+    DateTime? anchorDate,
+    bool forceRefresh = false,
+  }) async {
+    final now = anchorDate ?? DateTime.now();
+    final weekStart = _startOfWeek(now);
+    final weekId = _weekIdFromDate(weekStart);
+
+    if (!forceRefresh) {
+      final existing = await _weeklyAnalysisCol.doc(weekId).get();
+      if (existing.exists && existing.data() != null) {
+        return WeeklyAnalysisData.fromMap(existing.data()!);
+      }
+    }
+
+    final generated = await _generateWeeklyAnalysis(anchorDate: now);
+    await saveWeeklyAnalysis(generated);
+    return generated;
+  }
+
+  Future<void> saveWeeklyAnalysis(WeeklyAnalysisData data) async {
+    await _weeklyAnalysisCol
+        .doc(data.weekId)
+        .set(data.toMap(), SetOptions(merge: true));
+  }
+
+  Future<WeeklyAnalysisData> _generateWeeklyAnalysis({
+    DateTime? anchorDate,
+  }) async {
     final now = anchorDate ?? DateTime.now();
     final weekStart = _startOfWeek(now);
     final weekEnd = weekStart.add(
-      const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+      const Duration(days: 6, hours: 23, minutes: 59),
     );
 
     final prevWeekStart = weekStart.subtract(const Duration(days: 7));
     final prevWeekEnd = weekEnd.subtract(const Duration(days: 7));
 
-    final currentTasks = await _fetchTasksBetween(weekStart, weekEnd);
-    final previousTasks = await _fetchTasksBetween(prevWeekStart, prevWeekEnd);
+    final tasks = await _fetchTasksBetween(weekStart, weekEnd);
+    final moods = await _fetchMoodsBetween(weekStart, weekEnd);
 
-    final currentMoods = await _fetchMoodsBetween(weekStart, weekEnd);
-
-    final currentPomodoroMinutes = await _fetchPomodoroMinutesByDay(
-      weekStart,
-      weekEnd,
-    );
-    final previousPomodoroMinutes = await _fetchPomodoroMinutesByDay(
+    final studyMinutes = await _fetchPomodoroMinutesByDay(weekStart, weekEnd);
+    final prevStudyMinutes = await _fetchPomodoroMinutesByDay(
       prevWeekStart,
       prevWeekEnd,
     );
 
-    final taskCompletionByDay = _buildTaskCompletionByDay(
-      currentTasks,
-      weekStart,
-    );
-    final mostProductiveDay = _mostProductiveDayFromTasks(
-      currentTasks,
-      weekStart,
-    );
+    final totalTasks = tasks.length;
+    final completedTasks = tasks.where((t) => t.isCompleted).length;
+    final pendingTasks = totalTasks - completedTasks;
 
-    final taskCompletionPercent = _taskCompletionPercent(currentTasks);
-    final previousTaskCompletionPercent = _taskCompletionPercent(previousTasks);
-    final taskCompletionDeltaPercent =
-        taskCompletionPercent - previousTaskCompletionPercent;
+    final taskCompletionPercent = totalTasks == 0
+        ? 0
+        : ((completedTasks / totalTasks) * 100).round();
 
-    final totalStudyMinutes = currentPomodoroMinutes.fold<int>(
-      0,
-      (a, b) => a + b.round(),
-    );
-    final previousTotalStudyMinutes = previousPomodoroMinutes.fold<int>(
+    final taskChartValues = _buildTaskChart(tasks);
+
+    final taskSummary =
+        'You completed $completedTasks out of $totalTasks tasks this week.';
+
+    final currentWeekStudyMinutes = studyMinutes.fold<int>(
       0,
       (a, b) => a + b.round(),
     );
 
-    final studyHoursLabel = _formatMinutes(totalStudyMinutes);
-    final studyHoursDeltaPercent = _percentageDelta(
-      previousTotalStudyMinutes,
-      totalStudyMinutes,
+    final previousWeekStudyMinutes = prevStudyMinutes.fold<int>(
+      0,
+      (a, b) => a + b.round(),
     );
 
-    final moodEmojis = _buildMoodEmojiRow(currentMoods, weekStart);
-    final moodInsight = _buildMoodInsight(currentMoods, weekStart);
+    final studyDeltaPercent = _percentageDelta(
+      previousWeekStudyMinutes,
+      currentWeekStudyMinutes,
+    );
+
+    final studyChartValues = studyMinutes.map((e) => e / 60).toList();
+
+    final studySummary =
+        'You studied ${(currentWeekStudyMinutes / 60).toStringAsFixed(1)} hours this week.';
+
+    final moodEmojis = _buildMoodEmojiRow(moods);
+    final moodSummary = _buildMoodSummary(moodEmojis);
+    final motivationalMessage = _buildMotivationalMessage(moodEmojis);
 
     return WeeklyAnalysisData(
       weekStart: weekStart,
       weekEnd: weekEnd,
-      mostProductiveDay: mostProductiveDay,
+      totalTasks: totalTasks,
+      completedTasks: completedTasks,
+      pendingTasks: pendingTasks,
       taskCompletionPercent: taskCompletionPercent,
-      taskCompletionDeltaPercent: taskCompletionDeltaPercent,
-      taskCompletionByDay: taskCompletionByDay,
-      studyHoursLabel: studyHoursLabel,
-      studyHoursDeltaPercent: studyHoursDeltaPercent,
-      studyHoursByDay: currentPomodoroMinutes.map((e) => e / 60.0).toList(),
+      taskChartValues: taskChartValues,
+      taskSummary: taskSummary,
+      currentWeekStudyMinutes: currentWeekStudyMinutes,
+      previousWeekStudyMinutes: previousWeekStudyMinutes,
+      studyDeltaPercent: studyDeltaPercent,
+      studyChartValues: studyChartValues,
+      studySummary: studySummary,
       moodEmojis: moodEmojis,
-      moodInsightTitle: moodInsight.$1,
-      moodInsightBody: moodInsight.$2,
+      moodSummary: moodSummary,
+      motivationalMessage: motivationalMessage,
     );
   }
 
   DateTime _startOfWeek(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
-    final weekday = normalized.weekday; // Mon=1 ... Sun=7
-    return normalized.subtract(Duration(days: weekday - 1));
+    return normalized.subtract(Duration(days: normalized.weekday - 1));
+  }
+
+  String _weekIdFromDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   Future<List<AppTask>> _fetchTasksBetween(DateTime start, DateTime end) async {
@@ -132,7 +173,7 @@ class WeeklyAnalysisService {
 
         if (ts is Timestamp && mood.isNotEmpty) {
           final dt = ts.toDate();
-          final dayIndex = dt.weekday - 1; // Mon=0 ... Sun=6
+          final dayIndex = dt.weekday - 1;
           result[dayIndex] = mood;
         }
       }
@@ -167,175 +208,138 @@ class WeeklyAnalysisService {
           final dt = ts.toDate();
           final dayIndex = dt.weekday - 1;
           final minutes = (minutesRaw as num).toDouble();
+
           if (dayIndex >= 0 && dayIndex < 7) {
             values[dayIndex] += minutes;
           }
         }
       }
     } catch (_) {
-      // no pomodoro data yet -> keep zeros
+      // keep zero values
     }
 
     return values;
   }
 
-  List<double> _buildTaskCompletionByDay(
-    List<AppTask> tasks,
-    DateTime weekStart,
-  ) {
-    final totalByDay = List<int>.filled(7, 0);
-    final completedByDay = List<int>.filled(7, 0);
-
-    for (final task in tasks) {
-      final index = task.dueDate.weekday - 1;
-      if (index < 0 || index > 6) continue;
-
-      totalByDay[index]++;
-      if (task.isCompleted) {
-        completedByDay[index]++;
-      }
-    }
-
-    return List<double>.generate(7, (i) {
-      if (totalByDay[i] == 0) return 0;
-      return (completedByDay[i] / totalByDay[i]) * 100;
-    });
-  }
-
-  String _mostProductiveDayFromTasks(List<AppTask> tasks, DateTime weekStart) {
-    final completedByDay = List<int>.filled(7, 0);
+  List<double> _buildTaskChart(List<AppTask> tasks) {
+    final values = List<double>.filled(7, 0);
 
     for (final task in tasks) {
       if (!task.isCompleted) continue;
+
       final index = task.dueDate.weekday - 1;
       if (index >= 0 && index < 7) {
-        completedByDay[index]++;
+        values[index]++;
       }
     }
 
-    int bestIndex = 0;
-    int bestValue = completedByDay[0];
-
-    for (int i = 1; i < completedByDay.length; i++) {
-      if (completedByDay[i] > bestValue) {
-        bestValue = completedByDay[i];
-        bestIndex = i;
-      }
-    }
-
-    const labels = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    return labels[bestIndex];
+    return values;
   }
 
-  int _taskCompletionPercent(List<AppTask> tasks) {
-    if (tasks.isEmpty) return 0;
-    final completed = tasks.where((t) => t.isCompleted).length;
-    return ((completed / tasks.length) * 100).round();
-  }
-
-  int _percentageDelta(int previous, int current) {
-    if (previous <= 0) return current > 0 ? 100 : 0;
-    return (((current - previous) / previous) * 100).round();
-  }
-
-  String _formatMinutes(int totalMinutes) {
-    final hours = totalMinutes ~/ 60;
-    final mins = totalMinutes % 60;
-    return '${hours}h ${mins}m';
-  }
-
-  List<String> _buildMoodEmojiRow(Map<int, String> moods, DateTime weekStart) {
+  List<String> _buildMoodEmojiRow(Map<int, String> moods) {
     return List<String>.generate(7, (i) {
-      final raw = moods[i];
-      return _moodToEmoji(raw);
+      final rawMood = moods[i];
+      return _moodToEmoji(rawMood);
     });
   }
 
   String _moodToEmoji(String? mood) {
-    final value = (mood ?? '').toLowerCase();
+    final value = (mood ?? '').toLowerCase().trim();
 
     if (value.contains('happy') ||
         value.contains('great') ||
-        value.contains('good')) {
+        value.contains('good') ||
+        value.contains('excited') ||
+        value.contains('motivated') ||
+        value.contains('productive') ||
+        value.contains('calm')) {
       return '😊';
     }
-    if (value.contains('calm') ||
-        value.contains('okay') ||
-        value.contains('neutral')) {
+
+    if (value.contains('okay') ||
+        value.contains('neutral') ||
+        value.contains('fine') ||
+        value.contains('normal') ||
+        value.contains('average')) {
       return '😐';
     }
+
     if (value.contains('sad') ||
         value.contains('bad') ||
-        value.contains('stressed')) {
+        value.contains('stressed') ||
+        value.contains('tired') ||
+        value.contains('angry') ||
+        value.contains('upset') ||
+        value.contains('anxious') ||
+        value.contains('overwhelmed')) {
       return '☹️';
     }
+
     return '😐';
   }
 
-  int _moodScore(String? mood) {
-    final value = (mood ?? '').toLowerCase();
+  String _buildMoodSummary(List<String> moodEmojis) {
+    final happyCount = moodEmojis.where((e) => e == '😊').length;
+    final neutralCount = moodEmojis.where((e) => e == '😐').length;
+    final sadCount = moodEmojis.where((e) => e == '☹️').length;
 
-    if (value.contains('happy') ||
-        value.contains('great') ||
-        value.contains('good')) {
-      return 3;
+    if (happyCount >= 5) {
+      return 'Your week looked emotionally strong and positive overall.';
     }
-    if (value.contains('calm') ||
-        value.contains('okay') ||
-        value.contains('neutral')) {
-      return 2;
+
+    if (sadCount >= 4) {
+      return 'This week seems emotionally heavy, with several lower-mood days.';
     }
-    if (value.contains('sad') ||
-        value.contains('bad') ||
-        value.contains('stressed')) {
-      return 1;
+
+    if (neutralCount >= 4) {
+      return 'Your week felt mostly steady and balanced, without major emotional swings.';
     }
-    return 2;
+
+    if (happyCount > sadCount) {
+      return 'You had more positive days than difficult ones this week.';
+    }
+
+    if (sadCount > happyCount) {
+      return 'You had a few tough days this week, so extra care and rest may help.';
+    }
+
+    return 'Your week had a mix of emotions, showing both good moments and harder ones.';
   }
 
-  (String, String) _buildMoodInsight(
-    Map<int, String> moods,
-    DateTime weekStart,
-  ) {
-    if (moods.isEmpty) {
-      return (
-        'No mood pattern yet.',
-        'Track your mood daily to unlock weekly wellness insights.',
-      );
+  String _buildMotivationalMessage(List<String> moodEmojis) {
+    final happyCount = moodEmojis.where((e) => e == '😊').length;
+    final neutralCount = moodEmojis.where((e) => e == '😐').length;
+    final sadCount = moodEmojis.where((e) => e == '☹️').length;
+
+    if (happyCount >= 5) {
+      return 'You have built strong momentum this week. Keep going — your energy and consistency are paying off.';
     }
 
-    int lowestIndex = 0;
-    int lowestScore = 999;
-
-    for (int i = 0; i < 7; i++) {
-      final score = _moodScore(moods[i]);
-      if (score < lowestScore) {
-        lowestScore = score;
-        lowestIndex = i;
-      }
+    if (sadCount >= 5) {
+      return 'This week may have felt difficult, but hard weeks do not define you. Take things one step at a time and be kind to yourself.';
     }
 
-    const labels = [
-      'Mondays',
-      'Tuesdays',
-      'Wednesdays',
-      'Thursdays',
-      'Fridays',
-      'Saturdays',
-      'Sundays',
-    ];
+    if (neutralCount >= 5) {
+      return 'A steady week is still progress. Keep moving forward with small, consistent steps.';
+    }
 
-    return (
-      'Your mood seems to dip on ${labels[lowestIndex]}.',
-      'Consider scheduling a lighter study load or a short reset break on that day.',
-    );
+    if (happyCount >= 3 && sadCount >= 2) {
+      return 'This week had both highs and lows. Even with ups and downs, you kept showing up — and that matters.';
+    }
+
+    if (happyCount > sadCount) {
+      return 'You had a fairly positive week. Stay focused and carry this good energy into the next one.';
+    }
+
+    if (sadCount > happyCount) {
+      return 'You faced some challenging moments this week. Give yourself credit for making it through, and remember tomorrow is a fresh start.';
+    }
+
+    return 'Every week is part of your journey. Keep learning, keep growing, and trust your progress.';
+  }
+
+  int _percentageDelta(int previous, int current) {
+    if (previous == 0) return current > 0 ? 100 : 0;
+    return (((current - previous) / previous) * 100).round();
   }
 }
