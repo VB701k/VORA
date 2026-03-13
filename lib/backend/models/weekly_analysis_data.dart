@@ -75,4 +75,33 @@ class WeeklyAnalysisData {
     };
   }
 
-  
+  factory WeeklyAnalysisData.fromMap(Map<String, dynamic> map) {
+    final Timestamp weekStartTs = map['weekStart'] as Timestamp;
+    final Timestamp weekEndTs = map['weekEnd'] as Timestamp;
+
+    return WeeklyAnalysisData(
+      weekStart: weekStartTs.toDate(),
+      weekEnd: weekEndTs.toDate(),
+      totalTasks: (map['totalTasks'] ?? 0) as int,
+      completedTasks: (map['completedTasks'] ?? 0) as int,
+      pendingTasks: (map['pendingTasks'] ?? 0) as int,
+      taskCompletionPercent: (map['taskCompletionPercent'] ?? 0) as int,
+      taskChartValues: ((map['taskChartValues'] ?? []) as List)
+          .map((e) => (e as num).toDouble())
+          .toList(),
+      taskSummary: (map['taskSummary'] ?? '').toString(),
+      currentWeekStudyMinutes: (map['currentWeekStudyMinutes'] ?? 0) as int,
+      previousWeekStudyMinutes: (map['previousWeekStudyMinutes'] ?? 0) as int,
+      studyDeltaPercent: (map['studyDeltaPercent'] ?? 0) as int,
+      studyChartValues: ((map['studyChartValues'] ?? []) as List)
+          .map((e) => (e as num).toDouble())
+          .toList(),
+      studySummary: (map['studySummary'] ?? '').toString(),
+      moodEmojis: ((map['moodEmojis'] ?? []) as List)
+          .map((e) => e.toString())
+          .toList(),
+      moodSummary: (map['moodSummary'] ?? '').toString(),
+      motivationalMessage: (map['motivationalMessage'] ?? '').toString(),
+    );
+  }
+}
