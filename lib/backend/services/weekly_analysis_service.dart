@@ -25,7 +25,38 @@ class WeeklyAnalysisService {
   CollectionReference<Map<String, dynamic>> get _pomodoroCol =>
       _db.collection('users').doc(_uid).collection('pomodoro_sessions');
 
-  Future<WeeklyAnalysisData> getWeeklyAnalysis({DateTime? anchorDate}) async {
+  CollectionReference<Map<String, dynamic>> get _weeklyAnalysisCol =>
+      _db.collection('users').doc(_uid).collection('weekly_analysis');
+
+  Future<WeeklyAnalysisData> getOrGenerateWeeklyAnalysis({
+    DateTime? anchorDate,
+    bool forceRefresh = false,
+  }) async {
+    final now = anchorDate ?? DateTime.now();
+    final weekStart = _startOfWeek(now);
+    final weekId = _weekIdFromDate(weekStart);
+
+    if (!forceRefresh) {
+      final existing = await _weeklyAnalysisCol.doc(weekId).get();
+      if (existing.exists && existing.data() != null) {
+        return WeeklyAnalysisData.fromMap(existing.data()!);
+      }
+    }
+
+    final generated = await _generateWeeklyAnalysis(anchorDate: now);
+    await saveWeeklyAnalysis(generated);
+    return generated;
+  }
+
+  Future<void> saveWeeklyAnalysis(WeeklyAnalysisData data) async {
+    await _weeklyAnalysisCol
+        .doc(data.weekId)
+        .set(data.toMap(), SetOptions(merge: true));
+  }
+
+  Future<WeeklyAnalysisData> _generateWeeklyAnalysis({
+    DateTime? anchorDate,
+  }) async {
     final now = anchorDate ?? DateTime.now();
     final weekStart = _startOfWeek(now);
     final weekEnd = weekStart.add(
@@ -44,7 +75,6 @@ class WeeklyAnalysisService {
       prevWeekEnd,
     );
 
-    // TASKS
     final totalTasks = tasks.length;
     final completedTasks = tasks.where((t) => t.isCompleted).length;
     final pendingTasks = totalTasks - completedTasks;
@@ -58,7 +88,6 @@ class WeeklyAnalysisService {
     final taskSummary =
         'You completed $completedTasks out of $totalTasks tasks this week.';
 
-    // STUDY
     final currentWeekStudyMinutes = studyMinutes.fold<int>(
       0,
       (a, b) => a + b.round(),
@@ -79,7 +108,6 @@ class WeeklyAnalysisService {
     final studySummary =
         'You studied ${(currentWeekStudyMinutes / 60).toStringAsFixed(1)} hours this week.';
 
-    // MOOD
     final moodEmojis = _buildMoodEmojiRow(moods);
     final moodSummary = _buildMoodSummary(moodEmojis);
     final motivationalMessage = _buildMotivationalMessage(moodEmojis);
@@ -107,6 +135,13 @@ class WeeklyAnalysisService {
   DateTime _startOfWeek(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     return normalized.subtract(Duration(days: normalized.weekday - 1));
+  }
+
+  String _weekIdFromDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   Future<List<AppTask>> _fetchTasksBetween(DateTime start, DateTime end) async {
@@ -138,7 +173,7 @@ class WeeklyAnalysisService {
 
         if (ts is Timestamp && mood.isNotEmpty) {
           final dt = ts.toDate();
-          final dayIndex = dt.weekday - 1; // Mon=0 ... Sun=6
+          final dayIndex = dt.weekday - 1;
           result[dayIndex] = mood;
         }
       }
@@ -180,7 +215,7 @@ class WeeklyAnalysisService {
         }
       }
     } catch (_) {
-      // keep default zeros
+      // keep zero values
     }
 
     return values;
@@ -276,37 +311,30 @@ class WeeklyAnalysisService {
     final neutralCount = moodEmojis.where((e) => e == '😐').length;
     final sadCount = moodEmojis.where((e) => e == '☹️').length;
 
-    // Mostly happy
     if (happyCount >= 5) {
       return 'You have built strong momentum this week. Keep going — your energy and consistency are paying off.';
     }
 
-    // Mostly sad
     if (sadCount >= 5) {
       return 'This week may have felt difficult, but hard weeks do not define you. Take things one step at a time and be kind to yourself.';
     }
 
-    // Mostly neutral
     if (neutralCount >= 5) {
       return 'A steady week is still progress. Keep moving forward with small, consistent steps.';
     }
 
-    // Mixed moods
     if (happyCount >= 3 && sadCount >= 2) {
       return 'This week had both highs and lows. Even with ups and downs, you kept showing up — and that matters.';
     }
 
-    // More happy than sad
     if (happyCount > sadCount) {
       return 'You had a fairly positive week. Stay focused and carry this good energy into the next one.';
     }
 
-    // More sad than happy
     if (sadCount > happyCount) {
       return 'You faced some challenging moments this week. Give yourself credit for making it through, and remember tomorrow is a fresh start.';
     }
 
-    // Default
     return 'Every week is part of your journey. Keep learning, keep growing, and trust your progress.';
   }
 
