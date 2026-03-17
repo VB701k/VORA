@@ -9,11 +9,14 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   // Home screen colors
+  static const Color bg = Color(0xFF0E1A22);
   static const Color card = Color(0xFF172B35);
+  static const Color cardLight = Color(0xFF1D3642);
   static const Color accent = Color(0xFF2EC4F1);
+  static const Color accentSoft = Color(0x332EC4F1);
   static const Color text = Color(0xFFEAF6FB);
   static const Color textDim = Color(0xFF9FB4C4);
-  static const Color stroke = Color(0xFF243E4B);
+  static const Color stroke = Color(0xFF264554);
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +25,9 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 18),
           _buildTopBar(),
-          const SizedBox(height: 22),
+          const SizedBox(height: 26),
 
           _buildSectionTitle("QUICK ACCESS"),
           const SizedBox(height: 16),
