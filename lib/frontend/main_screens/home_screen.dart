@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/home_profile_service.dart';
-import 'package:vora/frontend/main_screens/task_manager_screen.dart';
+import 'package:vora/frontend/pages/task_manager_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
 import 'package:vora/frontend/pages/pomodoro_tab.dart';
 import 'package:vora/frontend/pages/weekly_analysis_screen.dart';
+import 'package:vora/frontend/pages/calendar_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -195,7 +196,9 @@ class HomeScreen extends StatelessWidget {
           title: "Notes",
           subtitle: "Keep study notes",
           icon: Icons.note_alt_rounded,
-          onTap: () {},
+          onTap: () {
+            // navigate to Notes
+          },
         ),
         _QuickTile(
           title: "Pomodoro",
@@ -208,6 +211,7 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
+
         _QuickTile(
           title: "Mental Wellness",
           subtitle: "Relax your mind",
@@ -219,6 +223,7 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
+
         _QuickTile(
           title: "Weekly Analytics",
           subtitle: "Track your progress",
@@ -246,7 +251,12 @@ class HomeScreen extends StatelessWidget {
         _ShortcutTile(
           title: "Calendar",
           icon: Icons.calendar_month_rounded,
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CalendarScreen()),
+            );
+          },
         ),
         _ShortcutTile(
           title: "Task Manager",

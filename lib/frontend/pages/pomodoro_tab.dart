@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
+import 'package:vora/backend/services/pomodoro_service.dart';
 
 class PomodoroTab extends StatefulWidget {
     const PomodoroTab({super.key});
@@ -41,7 +41,8 @@ class _PomodoroTabState extends State<PomodoroTab> {
       if (_secondsLeft > 0) {
         setState(() => _secondsLeft--);
       } else {
-        _pause(); // stop at 0
+        _pause();
+        PomodoroService.saveSession(_totalSeconds);
       }
     });
   }
