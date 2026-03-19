@@ -624,3 +624,23 @@ class FirebaseBootstrap {
     await batch.commit();
   }
 }
+
+class TaskCompletionHelper {
+  /// Completes a task and triggers reward + streak updates.
+  /// Pass the currentValue (current isCompleted) from UI.
+  static Future<void> completeTask({
+    required String taskId,
+    required bool currentValue,
+  }) async {
+    await TaskFirestoreService.instance.toggleDone(taskId, currentValue);
+
+    // Reward only when switching false -> true
+    if (!currentValue) {
+      await RewardService.instance.onTaskCompleted();
+      await StreakService.instance.markActiveToday();
+
+      final streak = await StreakService.instance.getCurrentStreak();
+      await RewardService.instance.onStreakMilestone(streak);
+    }
+  }
+}
