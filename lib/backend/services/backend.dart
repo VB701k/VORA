@@ -522,36 +522,46 @@ class QuoteService {
   }) async {
     final key = DateKey.todayKey(useUtc: true);
 
-    final cached = await _repo.getDailyQuote(key);
-    if (cached != null) return cached;
+    try {
+      final cached = await _repo.getDailyQuote(key);
+      if (cached != null) return cached;
 
-    final quotes = await _repo.getQuotes(
-      categories: allowedCategories,
-      limit: 200,
-    );
+      final quotes = await _repo.getQuotes(
+        categories: allowedCategories,
+        limit: 200,
+      );
 
-    if (quotes.isEmpty) {
-      final fallback = {
-        'text': 'Keep going. You are building something real.',
-        'author': 'VORA',
-        'category': 'fallback',
+      if (quotes.isEmpty) {
+        final fallback = {
+          'text': 'Keep going. You are building something real.',
+          'author': 'VORA',
+          'category': 'fallback',
+        };
+        await _repo.setDailyQuote(key, fallback);
+        return fallback;
+      }
+
+      final idx = _stableIndex(key, quotes.length);
+      final picked = quotes[idx].data();
+
+      final daily = {
+        'text': (picked['text'] ?? '').toString(),
+        'author': (picked['author'] ?? 'Unknown').toString(),
+        'category': (picked['category'] ?? 'Motivation').toString(),
+        'sourceQuoteId': quotes[idx].id,
       };
-      await _repo.setDailyQuote(key, fallback);
-      return fallback;
+
+      await _repo.setDailyQuote(key, daily);
+      return daily;
+    } catch (e) {
+      // If Firestore fails (offline / permissions / etc.)
+      debugPrint("QuoteService error: $e");
+      return {
+        'text': 'One step at a time. You’ve got this.',
+        'author': 'VORA',
+        'category': 'offline',
+      };
     }
-
-    final idx = _stableIndex(key, quotes.length);
-    final picked = quotes[idx].data();
-
-    final daily = {
-      'text': (picked['text'] ?? '').toString(),
-      'author': (picked['author'] ?? 'Unknown').toString(),
-      'category': (picked['category'] ?? 'Motivation').toString(),
-      'sourceQuoteId': quotes[idx].id,
-    };
-
-    await _repo.setDailyQuote(key, daily);
-    return daily;
   }
 
   int _stableIndex(String key, int length) {
