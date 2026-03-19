@@ -378,6 +378,9 @@ class DateKey {
 // =====================================================
 // 8) NEW: StreakService (single source of truth in users/{uid})
 // =====================================================
+/// Usage:
+/// - Call markActiveToday() when user completes a task or opens the app.
+/// - Stores in users/{uid}: lastActiveDate, streak, longestStreak.
 class StreakService {
   StreakService._();
   static final StreakService instance = StreakService._();
@@ -517,6 +520,9 @@ class QuotesRepository {
   }
 }
 
+/// Usage:
+/// - Call getOrCreateTodayQuote() to fetch a stable daily quote.
+/// - Caches in dailyQuotes/{YYYY-MM-DD} so it won’t change during the day.
 class QuoteService {
   QuoteService({QuotesRepository? repo}) : _repo = repo ?? QuotesRepository();
   final QuotesRepository _repo;
