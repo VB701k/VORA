@@ -757,7 +757,7 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
           onEdit: () => _openEdit(note),
           onActionTap: () => _openEdit(note),
           onPinToggle: () async {
-            await NotesBackend.instance.togglePinned(note.id);
+            await NotesBackend.instance.setPinned(note.id, !note.isPinned);
           },
         );
       }).toList(),

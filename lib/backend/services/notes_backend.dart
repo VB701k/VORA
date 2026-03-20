@@ -1,7 +1,7 @@
 // lib/backend/services/notes_backend.dart
 //
-// VORA Notes Backend (Polished + Index-safe)
-// ----------------------------------------
+// VORA Notes Backend (Final + Index-safe + NO togglePinned)
+// -------------------------------------------------------
 // Firestore:
 //   users/{uid}/notes/{noteId}
 //   users/{uid}/notes/{noteId}/attachments/{attachmentId}
@@ -12,6 +12,7 @@
 // IMPORTANT:
 // - streamNotesActive uses ONE orderBy(updatedAt) to avoid composite index errors.
 // - Pinned sorting is done in frontend.
+// - Pin control uses setPinned(noteId, bool) ONLY (no togglePinned).
 //
 // Dependencies:
 //   cloud_firestore, firebase_auth, firebase_storage
@@ -330,19 +331,11 @@ class NotesBackend {
     await ref.update(updates);
   }
 
+  /// ✅ Only pin method (no togglePinned)
   Future<void> setPinned(String noteId, bool pinned) async {
     await _noteRef(
       noteId,
     ).update({'isPinned': pinned, 'updatedAt': FieldValue.serverTimestamp()});
-  }
-
-  Future<void> togglePinned(String noteId) async {
-    final doc = await _noteRef(noteId).get();
-    if (!doc.exists) throw NotFoundException('Note');
-
-    final data = doc.data() ?? {};
-    final current = (data['isPinned'] ?? false) as bool;
-    await setPinned(noteId, !current);
   }
 
   // =========================================================
@@ -488,7 +481,7 @@ class NotesBackend {
   }
 
   // =========================================================
-  // EXTRA: COUNTS (you already started this)
+  // EXTRA: COUNTS
   // =========================================================
 
   Future<int> countActiveNotes() async {
