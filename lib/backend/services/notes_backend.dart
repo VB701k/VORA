@@ -351,6 +351,26 @@ class NotesBackend {
     ).update({'isPinned': pinned, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
+  Future<void> togglePinned(String noteId) async {
+    final doc = await _noteRef(noteId).get();
+    if (!doc.exists) throw NotFoundException('Note');
+
+    final data = doc.data() ?? {};
+    final current = (data['isPinned'] ?? false) as bool;
+
+    await setPinned(noteId, !current);
+  }
+
+  Future<void> togglePinned(String noteId) async {
+    final doc = await _noteRef(noteId).get();
+    if (!doc.exists) throw NotFoundException('Note');
+
+    final data = doc.data() ?? {};
+    final current = (data['isPinned'] ?? false) as bool;
+
+    await setPinned(noteId, !current);
+  }
+
   // =========================================================
   // NOTES: TRASH (soft delete) / RESTORE / HARD DELETE
   // =========================================================

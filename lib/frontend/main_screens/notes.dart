@@ -1,8 +1,14 @@
 // lib/frontend/notes/notes_module.dart
-// ONE-FILE NOTES MODULE (polished)
-// Includes: AppColors, models, widgets, StudyNotesScreen, NoteEditorScreen
+// ONE-FILE NOTES MODULE (FINAL + BACKEND CONNECTED)
+// - Uses Firestore via NotesBackend (stream notes, create/update/trash, pin toggle)
+// - Still keeps your polished UI and editor
+//
+// Requires:
+//   lib/backend/services/notes_backend.dart  (NotesBackend, NoteDoc)
+//   firebase initialized in main.dart
 
 import 'package:flutter/material.dart';
+import 'package:vora/backend/services/notes_backend.dart';
 
 /// ==================== THEME ====================
 class AppColors {
@@ -17,7 +23,8 @@ class AppColors {
   static const textSecondary = Colors.white70;
 }
 
-/// ==================== MODELS ====================
+/// ==================== UI MODELS ====================
+/// (UI-only attachment model; backend attachments can be wired later)
 class AttachmentModel {
   final String id;
   final String name;
@@ -34,13 +41,17 @@ class AttachmentModel {
   });
 }
 
+/// UI-only note model (maps from backend NoteDoc)
 class NoteModel {
   final String id;
   final String title;
-  final String description; // short preview
-  final String metaLeft; // e.g. "2 HOURS AGO • #SCIENCE"
-  final String actionText; // e.g. "2 Files"
+  final String description; // summary / preview
+  final String metaLeft; // "UPDATED" / etc
+  final String actionText; // "Open" / "2 Files" etc
   final bool featured;
+
+  final bool isPinned;
+  final bool isDeleted;
 
   const NoteModel({
     required this.id,
@@ -49,6 +60,8 @@ class NoteModel {
     required this.metaLeft,
     required this.actionText,
     this.featured = false,
+    this.isPinned = false,
+    this.isDeleted = false,
   });
 
   NoteModel copyWith({
@@ -57,6 +70,8 @@ class NoteModel {
     String? metaLeft,
     String? actionText,
     bool? featured,
+    bool? isPinned,
+    bool? isDeleted,
   }) {
     return NoteModel(
       id: id,
@@ -65,6 +80,8 @@ class NoteModel {
       metaLeft: metaLeft ?? this.metaLeft,
       actionText: actionText ?? this.actionText,
       featured: featured ?? this.featured,
+      isPinned: isPinned ?? this.isPinned,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }
@@ -140,12 +157,12 @@ class AttachmentRow extends StatelessWidget {
 }
 
 /// ==================== NOTE CARD ====================
-/// (same UI behavior as your NoteCard: menu with edit/delete + action pill)
 class NoteCard extends StatelessWidget {
   final NoteModel note;
   final VoidCallback? onEdit;
   final VoidCallback? onActionTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onPinToggle;
 
   const NoteCard({
     super.key,
@@ -153,6 +170,7 @@ class NoteCard extends StatelessWidget {
     this.onEdit,
     this.onActionTap,
     this.onDelete,
+    this.onPinToggle,
   });
 
   @override
@@ -201,6 +219,21 @@ class NoteCard extends StatelessWidget {
                         ),
                       ),
                     ),
+
+                    // Pin icon
+                    IconButton(
+                      onPressed: onPinToggle,
+                      icon: Icon(
+                        note.isPinned
+                            ? Icons.push_pin_rounded
+                            : Icons.push_pin_outlined,
+                        color: note.isPinned
+                            ? AppColors.primary
+                            : Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+
                     PopupMenuButton<String>(
                       icon: const Icon(
                         Icons.more_vert_rounded,
@@ -290,7 +323,7 @@ class _ActionPill extends StatelessWidget {
         child: Row(
           children: [
             const Icon(
-              Icons.attach_file_rounded,
+              Icons.open_in_new_rounded,
               color: AppColors.primary,
               size: 16,
             ),
@@ -313,22 +346,36 @@ class _ActionPill extends StatelessWidget {
 /// ==================== NOTE EDITOR SCREEN ====================
 /// Returns NoteEditorResult via Navigator.pop()
 class NoteEditorResult {
-  final NoteModel note;
+  final String title;
+  final String content;
+  final List<String> tags;
   final List<AttachmentModel> attachments;
-  const NoteEditorResult({required this.note, required this.attachments});
+
+  const NoteEditorResult({
+    required this.title,
+    required this.content,
+    required this.tags,
+    required this.attachments,
+  });
 }
 
 class NoteEditorScreen extends StatefulWidget {
   const NoteEditorScreen({
     super.key,
-    this.initialNote,
+    this.noteId,
+    this.initialTitle,
+    this.initialContent,
+    this.initialTags = const [],
     this.initialAttachments = const [],
   });
 
-  final NoteModel? initialNote;
+  final String? noteId; // null => create mode
+  final String? initialTitle;
+  final String? initialContent;
+  final List<String> initialTags;
   final List<AttachmentModel> initialAttachments;
 
-  bool get isEdit => initialNote != null;
+  bool get isEdit => noteId != null;
 
   @override
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -337,40 +384,42 @@ class NoteEditorScreen extends StatefulWidget {
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
   final _titleCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
+  final _tagCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   late final List<AttachmentModel> _attachments;
+  late final List<String> _tags;
 
   @override
   void initState() {
     super.initState();
-
-    _titleCtrl.text = widget.initialNote?.title ?? '';
-    _bodyCtrl.text = widget.initialNote?.description ?? '';
+    _titleCtrl.text = widget.initialTitle ?? '';
+    _bodyCtrl.text = widget.initialContent ?? '';
     _attachments = [...widget.initialAttachments];
-
-    // If create mode and you want a sample attachment (optional), you can remove this.
-    if (!widget.isEdit && _attachments.isEmpty) {
-      _attachments.add(
-        AttachmentModel(
-          id: 'att1',
-          name: 'Lecture_Slides.pdf',
-          type: 'PDF',
-          sizeLabel: '2.1 MB',
-        ),
-      );
-    }
+    _tags = [...widget.initialTags];
   }
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _bodyCtrl.dispose();
+    _tagCtrl.dispose();
     super.dispose();
   }
 
+  void _addTag() {
+    final t = _tagCtrl.text.trim();
+    if (t.isEmpty) return;
+    setState(() {
+      if (!_tags.contains(t.toUpperCase())) {
+        _tags.add(t.toUpperCase());
+      }
+      _tagCtrl.clear();
+    });
+  }
+
   void _addFakeAttachment() {
-    // UI only (you can replace with file_picker later)
+    // UI only (replace with file_picker later)
     setState(() {
       _attachments.add(
         AttachmentModel(
@@ -387,26 +436,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void _save() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final id =
-        widget.initialNote?.id ??
-        DateTime.now().millisecondsSinceEpoch.toString();
-    final title = _titleCtrl.text.trim();
-    final body = _bodyCtrl.text.trim();
-
-    final note = NoteModel(
-      id: id,
-      title: title,
-      description: body,
-      metaLeft: widget.isEdit ? 'UPDATED • #GENERAL' : 'JUST NOW • #GENERAL',
-      actionText: _attachments.isEmpty
-          ? 'Add Files'
-          : '${_attachments.length} Files',
-      featured: widget.initialNote?.featured ?? false,
-    );
-
     Navigator.pop(
       context,
-      NoteEditorResult(note: note, attachments: _attachments),
+      NoteEditorResult(
+        title: _titleCtrl.text.trim(),
+        content: _bodyCtrl.text.trim(),
+        tags: _tags,
+        attachments: _attachments,
+      ),
     );
   }
 
@@ -424,7 +461,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 onBack: () => Navigator.maybePop(context),
               ),
               const SizedBox(height: 16),
-
               Form(
                 key: _formKey,
                 child: Column(
@@ -433,11 +469,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       label: 'Title',
                       controller: _titleCtrl,
                       hint: 'Enter note title',
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty)
-                          return 'Title is required';
-                        return null;
-                      },
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Title is required'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     _Field(
@@ -445,18 +479,84 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       controller: _bodyCtrl,
                       hint: 'Write your note…',
                       maxLines: 7,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty)
-                          return 'Content is required';
-                        return null;
-                      },
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Content is required'
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Tags
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Field(
+                            label: 'Tags',
+                            controller: _tagCtrl,
+                            hint: 'Add tag (e.g., MATH)',
+                            maxLines: 1,
+                            validator: (_) => null,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _addTag,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.card,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                side: const BorderSide(color: AppColors.border),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Add',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _tags
+                            .map(
+                              (t) => Chip(
+                                backgroundColor: AppColors.card,
+                                side: const BorderSide(color: AppColors.border),
+                                label: Text(
+                                  t,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                deleteIcon: const Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: Colors.white54,
+                                ),
+                                onDeleted: () =>
+                                    setState(() => _tags.remove(t)),
+                              ),
+                            )
+                            .toList(),
+                      ),
                     ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 14),
-
               Row(
                 children: [
                   const Text(
@@ -480,7 +580,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 10),
               Expanded(
                 child: _attachments.isEmpty
@@ -496,18 +595,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                     : ListView.separated(
                         itemCount: _attachments.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) {
-                          return AttachmentRow(
-                            attachment: _attachments[i],
-                            onRemove: () =>
-                                setState(() => _attachments.removeAt(i)),
-                          );
-                        },
+                        itemBuilder: (context, i) => AttachmentRow(
+                          attachment: _attachments[i],
+                          onRemove: () =>
+                              setState(() => _attachments.removeAt(i)),
+                        ),
                       ),
               ),
-
               const SizedBox(height: 12),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -630,10 +725,12 @@ class _Field extends StatelessWidget {
 }
 
 /// ==================== STUDY NOTES SCREEN ====================
-/// Polished:
-/// - Search
-/// - Tabs (All / Recent / Favorites)
-/// - Create & Edit uses NoteEditorScreen and returns result
+/// Connected to NotesBackend:
+/// - List uses streamNotesActive()
+/// - Create -> createNote()
+/// - Edit -> updateNote()
+/// - Delete -> moveToTrash()
+/// - Pin -> togglePinned()
 class StudyNotesScreen extends StatefulWidget {
   const StudyNotesScreen({super.key});
 
@@ -644,51 +741,15 @@ class StudyNotesScreen extends StatefulWidget {
 class _StudyNotesScreenState extends State<StudyNotesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
   final _searchCtrl = TextEditingController();
 
-  final List<NoteModel> _notes = [
-    const NoteModel(
-      id: '1',
-      title: 'Organic Chemistry',
-      description: 'Covalent bonds...',
-      metaLeft: '2 HOURS AGO • #SCIENCE',
-      actionText: '2 Files',
-      featured: true,
-    ),
-    const NoteModel(
-      id: '2',
-      title: 'Calculus III',
-      description: 'Vectors...',
-      metaLeft: 'Yesterday • #MATH',
-      actionText: 'Add Files',
-      featured: false,
-    ),
-  ];
-
-  // attachments stored in-memory per note (UI demo)
+  // UI-only attachments map (you can wire backend attachments later)
   final Map<String, List<AttachmentModel>> _noteAttachments = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-
-    // demo attachments for note id '1'
-    _noteAttachments['1'] = const [
-      AttachmentModel(
-        id: 'att1',
-        name: 'Lecture_Slides.pdf',
-        type: 'PDF',
-        sizeLabel: '2.1 MB',
-      ),
-      AttachmentModel(
-        id: 'att2',
-        name: 'Lab_Notes.png',
-        type: 'IMG',
-        sizeLabel: '860 KB',
-      ),
-    ];
   }
 
   @override
@@ -696,72 +757,6 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
     _tabController.dispose();
     _searchCtrl.dispose();
     super.dispose();
-  }
-
-  void _openCreate() async {
-    final res = await Navigator.push<NoteEditorResult>(
-      context,
-      MaterialPageRoute(builder: (_) => const NoteEditorScreen()),
-    );
-
-    if (res == null) return;
-    setState(() {
-      _notes.insert(0, res.note);
-      _noteAttachments[res.note.id] = res.attachments;
-    });
-  }
-
-  void _openEdit(NoteModel note) async {
-    final res = await Navigator.push<NoteEditorResult>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => NoteEditorScreen(
-          initialNote: note,
-          initialAttachments: _noteAttachments[note.id] ?? const [],
-        ),
-      ),
-    );
-
-    if (res == null) return;
-    setState(() {
-      final idx = _notes.indexWhere((n) => n.id == note.id);
-      if (idx != -1) _notes[idx] = res.note;
-      _noteAttachments[note.id] = res.attachments;
-    });
-  }
-
-  void _delete(NoteModel note) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text(
-          'Delete Note',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Delete "${note.title}"?',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _notes.removeWhere((n) => n.id == note.id);
-                _noteAttachments.remove(note.id);
-              });
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
   }
 
   List<NoteModel> _filter(List<NoteModel> base) {
@@ -776,10 +771,80 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
         .toList();
   }
 
-  List<NoteModel> get _allNotes => _filter(_notes);
-  List<NoteModel> get _recentNotes => _filter(_notes.take(10).toList());
-  List<NoteModel> get _favoriteNotes =>
-      _filter(_notes.where((n) => n.featured).toList());
+  Future<void> _openCreate() async {
+    final res = await Navigator.push<NoteEditorResult>(
+      context,
+      MaterialPageRoute(builder: (_) => const NoteEditorScreen()),
+    );
+    if (res == null) return;
+
+    await NotesBackend.instance.createNote(
+      title: res.title,
+      content: res.content,
+      tags: res.tags.isEmpty ? const ['GENERAL'] : res.tags,
+    );
+
+    // keep UI-only attachments locally (optional)
+    // (For real attachment upload, wire NotesBackend.uploadAttachmentBytes)
+  }
+
+  Future<void> _openEdit(NoteModel note) async {
+    final res = await Navigator.push<NoteEditorResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NoteEditorScreen(
+          noteId: note.id,
+          initialTitle: note.title,
+          initialContent: note.description,
+          initialTags:
+              const [], // can be wired from backend if you store tags in UI
+          initialAttachments: _noteAttachments[note.id] ?? const [],
+        ),
+      ),
+    );
+    if (res == null) return;
+
+    await NotesBackend.instance.updateNote(
+      noteId: note.id,
+      title: res.title,
+      content: res.content,
+      tags: res.tags.isEmpty ? const ['GENERAL'] : res.tags,
+    );
+
+    // keep UI-only attachments locally (optional)
+    _noteAttachments[note.id] = res.attachments;
+  }
+
+  Future<void> _delete(NoteModel note) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text(
+          'Delete Note',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Move "${note.title}" to Trash?',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    await NotesBackend.instance.moveToTrash(note.id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -827,7 +892,7 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
               ),
               const SizedBox(height: 16),
 
-              // Tabs
+              // Tabs (All / Recent / Pinned)
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.card,
@@ -845,20 +910,60 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
                   tabs: const [
                     Tab(text: 'All'),
                     Tab(text: 'Recent'),
-                    Tab(text: 'Favorites'),
+                    Tab(text: 'Pinned'),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildList(_allNotes),
-                    _buildList(_recentNotes),
-                    _buildList(_favoriteNotes),
-                  ],
+                child: StreamBuilder<List<NoteDoc>>(
+                  stream: NotesBackend.instance.streamNotesActive(),
+                  builder: (context, snap) {
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snap.hasError) {
+                      return Center(
+                        child: Text(
+                          "Error: ${snap.error}",
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      );
+                    }
+
+                    final docs = snap.data ?? [];
+
+                    // Map backend NoteDoc -> UI NoteModel
+                    final mapped = docs.map((d) {
+                      final meta = (d.updatedAt == null)
+                          ? "JUST NOW"
+                          : "UPDATED";
+                      return NoteModel(
+                        id: d.id,
+                        title: d.title,
+                        description: d.summary.isEmpty ? d.content : d.summary,
+                        metaLeft: meta,
+                        actionText: "Open",
+                        featured: false,
+                        isPinned: d.isPinned,
+                        isDeleted: d.isDeleted,
+                      );
+                    }).toList();
+
+                    final all = _filter(mapped);
+                    final recent = all.take(10).toList();
+                    final pinned = all.where((n) => n.isPinned).toList();
+
+                    return TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildList(all),
+                        _buildList(recent),
+                        _buildList(pinned),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -874,17 +979,22 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
         child: Text('No notes', style: TextStyle(color: Colors.white54)),
       );
     }
+
     return ListView(
       children: list.map((note) {
         final files = _noteAttachments[note.id]?.length ?? 0;
         final patched = note.copyWith(
-          actionText: files == 0 ? 'Add Files' : '$files Files',
+          actionText: files == 0 ? 'Open' : '$files Files',
         );
+
         return NoteCard(
           note: patched,
           onDelete: () => _delete(note),
           onEdit: () => _openEdit(note),
           onActionTap: () => _openEdit(note),
+          onPinToggle: () async {
+            await NotesBackend.instance.togglePinned(note.id);
+          },
         );
       }).toList(),
     );
