@@ -465,8 +465,7 @@ class _TaskCompletionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safePercent = percent.clamp(0, 100);
-
+    final int safePercent = percent.clamp(0, 100).toInt();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -928,7 +927,7 @@ class _MoodInsightCard extends StatelessWidget {
 }
 
 List<double> _normalizeToSeven(List<double> values) {
-  final safe = List<double>.filled(7, 0);
+  final safe = List<double>.filled(7, 0.0);
   for (int i = 0; i < values.length && i < 7; i++) {
     safe[i] = values[i];
   }
@@ -949,7 +948,7 @@ double _taskChartMaxY(List<double> values) {
     if (v > maxValue) maxValue = v;
   }
 
-  if (maxValue <= 0) return 4;
+  if (maxValue <= 0) return 4.0;
   return maxValue + 1;
 }
 
@@ -959,8 +958,8 @@ double _studyChartMaxY(List<double> values) {
     if (v > maxValue) maxValue = v;
   }
 
-  if (maxValue <= 0) return 2;
-  return math.max(2, maxValue + 1);
+  if (maxValue <= 0) return 2.0;
+  return math.max(2.0, maxValue + 1).toDouble();
 }
 
 String _weekdayShort(int index) {
@@ -1015,9 +1014,9 @@ String? _findStrongestDay(WeeklyAnalysisData data) {
   int bestIndex = 0;
 
   for (int i = 0; i < 7; i++) {
-    final taskScore = maxTask == 0 ? 0 : task[i] / maxTask;
-    final studyScore = maxStudy == 0 ? 0 : study[i] / maxStudy;
-    final totalScore = taskScore + studyScore;
+    final double taskScore = maxTask == 0 ? 0.0 : task[i] / maxTask;
+    final double studyScore = maxStudy == 0 ? 0.0 : study[i] / maxStudy;
+    final double totalScore = taskScore + studyScore;
 
     if (totalScore > bestScore) {
       bestScore = totalScore;
