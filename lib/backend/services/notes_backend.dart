@@ -276,6 +276,8 @@ class NotesBackend {
     _validateTitle(title);
     _validateContent(content);
 
+    notesLog("createNote: ${title.trim()}");
+
     final ref = _notesCol.doc();
     final summary = _makeSummary(content);
     final keywords = _keywordsFrom(title, content, tags);
