@@ -356,6 +356,8 @@ class NotesBackend {
   // =========================================================
 
   Future<void> moveToTrash(String noteId) async {
+    notesLog("moveToTrash: $noteId");
+
     await _noteRef(noteId).update({
       'isDeleted': true,
       'deletedAt': FieldValue.serverTimestamp(),
