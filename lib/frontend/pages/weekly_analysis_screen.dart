@@ -957,9 +957,6 @@ double _studyChartMaxY(List<double> values) {
   for (final v in values) {
     if (v > maxValue) maxValue = v;
   }
-
-  if (maxValue <= 0) return 2.0;
-  return math.max(2.0, maxValue + 1).toDouble();
 }
 
 String _weekdayShort(int index) {
