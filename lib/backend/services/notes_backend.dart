@@ -28,6 +28,17 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 const String kNotesBackendVersion = "1.0.0";
 
+const String kNotesBackendVersion = "1.0.0";
+
+void notesLog(String msg) {
+  // prints only in debug mode (assert runs only in debug)
+  assert(() {
+    // ignore: avoid_print
+    print("[NOTES] $msg");
+    return true;
+  }());
+}
+
 /// ==================== Errors ====================
 
 class NotesBackendException implements Exception {
