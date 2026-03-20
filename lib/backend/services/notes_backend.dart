@@ -1,7 +1,7 @@
 // lib/backend/services/notes_backend.dart
 //
-// VORA Notes Backend (Fixed + Polished)
-// ------------------------------------
+// VORA Notes Backend (Polished + Index-safe)
+// ----------------------------------------
 // Firestore:
 //   users/{uid}/notes/{noteId}
 //   users/{uid}/notes/{noteId}/attachments/{attachmentId}
@@ -9,13 +9,9 @@
 // Storage:
 //   users/{uid}/notes/{noteId}/attachments/{filename}
 //
-// Features:
-// - Create/update notes (pin + tags)
-// - Soft delete (trash) + restore + hard delete
-// - Search indexing: titleLower + keywords (token list)
-// - Attachments: upload bytes to storage + store metadata in Firestore
-// - Link attachments (no storage)
-// - Best-effort cleanup on hard delete
+// IMPORTANT:
+// - streamNotesActive uses ONE orderBy(updatedAt) to avoid composite index errors.
+// - Pinned sorting is done in frontend.
 //
 // Dependencies:
 //   cloud_firestore, firebase_auth, firebase_storage
@@ -29,7 +25,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 const String kNotesBackendVersion = "1.0.0";
 
 void notesLog(String msg) {
-  // prints only in debug mode (assert runs only in debug)
   assert(() {
     // ignore: avoid_print
     print("[NOTES] $msg");
@@ -43,7 +38,6 @@ class NotesBackendException implements Exception {
   final String message;
   final Object? cause;
   NotesBackendException(this.message, {this.cause});
-
   @override
   String toString() => 'NotesBackendException($message, cause: $cause)';
 }
@@ -64,15 +58,14 @@ class ValidationException extends NotesBackendException {
 
 class NoteDoc {
   final String id;
-
   final String title;
   final String content;
-  final String summary; // short preview for cards
+  final String summary;
 
   final List<String> tags;
   final bool isPinned;
 
-  final bool isDeleted; // soft delete
+  final bool isDeleted;
   final DateTime? deletedAt;
 
   final DateTime? createdAt;
@@ -110,12 +103,12 @@ class NoteDoc {
 
 class NoteAttachmentDoc {
   final String id;
-  final String fileName; // display name
+  final String fileName;
   final String type; // PDF / IMG / LINK / OTHER
-  final String sizeLabel; // "2.1 MB" or "URL"
+  final String sizeLabel;
 
-  final String? downloadUrl; // storage URL or link URL
-  final String? storagePath; // null for LINK attachments
+  final String? downloadUrl;
+  final String? storagePath;
 
   final DateTime? uploadedAt;
 
@@ -153,11 +146,7 @@ class NotesBackend {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  // ✅ FIX: This is what your file was missing / out-of-scope
   final FirebaseStorage _storage = FirebaseStorage.instance;
-
-  // ---------- Auth / paths ----------
 
   String get _uid {
     final u = _auth.currentUser;
@@ -176,7 +165,7 @@ class NotesBackend {
 
   String _storageBase(String noteId) => 'users/$_uid/notes/$noteId/attachments';
 
-  // ---------- Helpers (summary + search index) ----------
+  // ---------- Helpers ----------
 
   String _makeSummary(String content, {int max = 110}) {
     final cleaned = content
@@ -189,14 +178,12 @@ class NotesBackend {
 
   List<String> _keywordsFrom(String title, String content, List<String> tags) {
     final combined = [title, content, ...tags].join(' ').toLowerCase();
-
     final tokens = combined
         .split(RegExp(r'[^a-z0-9]+'))
         .where((t) => t.trim().length >= 3)
         .map((t) => t.trim())
         .toSet()
         .toList();
-
     tokens.sort();
     return tokens.take(40).toList();
   }
@@ -216,7 +203,6 @@ class NotesBackend {
   String _safeFileName(String fileName) {
     final trimmed = fileName.trim();
     if (trimmed.isEmpty) throw ValidationException('File name is required');
-    // Windows-illegal characters replaced
     return trimmed.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
   }
 
@@ -224,10 +210,10 @@ class NotesBackend {
   // NOTES: STREAMS / READ
   // =========================================================
 
+  /// ✅ Index-safe query: filter + ONE orderBy
   Stream<List<NoteDoc>> streamNotesActive({int limit = 100}) {
     return _notesCol
         .where('isDeleted', isEqualTo: false)
-        .orderBy('isPinned', descending: true)
         .orderBy('updatedAt', descending: true)
         .limit(limit)
         .snapshots()
@@ -243,7 +229,6 @@ class NotesBackend {
         .map((snap) => snap.docs.map((d) => NoteDoc.fromDoc(d)).toList());
   }
 
-  /// Basic token search (query must be >= 3 chars)
   Stream<List<NoteDoc>> searchNotes(String query, {int limit = 50}) {
     final q = query.trim().toLowerCase();
     if (q.length < 3) return Stream.value(const <NoteDoc>[]);
@@ -357,22 +342,11 @@ class NotesBackend {
 
     final data = doc.data() ?? {};
     final current = (data['isPinned'] ?? false) as bool;
-
-    await setPinned(noteId, !current);
-  }
-
-  Future<void> togglePinned(String noteId) async {
-    final doc = await _noteRef(noteId).get();
-    if (!doc.exists) throw NotFoundException('Note');
-
-    final data = doc.data() ?? {};
-    final current = (data['isPinned'] ?? false) as bool;
-
     await setPinned(noteId, !current);
   }
 
   // =========================================================
-  // NOTES: TRASH (soft delete) / RESTORE / HARD DELETE
+  // NOTES: TRASH / RESTORE / HARD DELETE
   // =========================================================
 
   Future<void> moveToTrash(String noteId) async {
@@ -393,7 +367,6 @@ class NotesBackend {
     });
   }
 
-  /// Hard delete: deletes attachment docs, note doc, and best-effort deletes storage files.
   Future<void> hardDeleteNote(String noteId) async {
     final noteRef = _noteRef(noteId);
     final noteSnap = await noteRef.get();
@@ -401,7 +374,6 @@ class NotesBackend {
 
     final attSnap = await _attachmentsCol(noteId).get();
 
-    // delete storage best-effort
     for (final d in attSnap.docs) {
       final data = d.data();
       final storagePath = data['storagePath'] as String?;
@@ -433,13 +405,11 @@ class NotesBackend {
         );
   }
 
-  /// Upload bytes to Storage and record attachment in Firestore.
-  /// contentType examples: application/pdf, image/png
   Future<String> uploadAttachmentBytes({
     required String noteId,
     required Uint8List bytes,
     required String fileName,
-    required String type, // PDF/IMG/OTHER
+    required String type,
     required String sizeLabel,
     String contentType = 'application/octet-stream',
   }) async {
@@ -460,7 +430,6 @@ class NotesBackend {
       'uploadedAt': FieldValue.serverTimestamp(),
     });
 
-    // bump note ordering
     await _noteRef(
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
@@ -468,7 +437,6 @@ class NotesBackend {
     return attRef.id;
   }
 
-  /// Add a link attachment (no storage).
   Future<String> addLinkAttachment({
     required String noteId,
     required String title,
@@ -495,7 +463,6 @@ class NotesBackend {
     return attRef.id;
   }
 
-  /// Delete attachment doc and storage file (if any).
   Future<void> deleteAttachment({
     required String noteId,
     required String attachmentId,
@@ -518,5 +485,14 @@ class NotesBackend {
     await _noteRef(
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+  }
+
+  // =========================================================
+  // EXTRA: COUNTS (you already started this)
+  // =========================================================
+
+  Future<int> countActiveNotes() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
+    return snap.size;
   }
 }
