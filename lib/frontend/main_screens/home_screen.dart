@@ -3,6 +3,7 @@ import 'package:vora/backend/services/home_profile_service.dart';
 import 'package:vora/frontend/main_screens/task_manager_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
 import 'package:vora/frontend/pages/pomodoro_tab.dart';
+import "package:vora/frontend/main_screens/notes.dart";
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -119,6 +120,10 @@ class HomeScreen extends StatelessWidget {
           title: "Notes",
           icon: Icons.note_alt_rounded,
           onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StudyNotesScreen()),
+            );
             //  navigate to Notes
           },
         ),
