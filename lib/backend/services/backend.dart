@@ -194,6 +194,15 @@ class TaskFirestoreService {
         .map((snap) => snap.docs.map((d) => AppTask.fromDoc(d)).toList());
   }
 
+  Stream<List<AppTask>> streamPendingTasks() {
+    return _taskCol
+        .where('hidden', isEqualTo: false)
+        .where('isCompleted', isEqualTo: false)
+        .orderBy('dueAt', descending: false)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => AppTask.fromDoc(d)).toList());
+  }
+
   Future<void> toggleDone(String taskId, bool currentValue) async {
     await _taskCol.doc(taskId).update({'isCompleted': !currentValue});
   }
