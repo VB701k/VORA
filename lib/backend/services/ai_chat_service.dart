@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIChatService {
-  static const String apiKey = 'API Key';
+  static const String apiKey = 'AIzaSyDqYusAy9sXjLn_2oFCAQrhtoTluHbmjjg';
 
   static Future<String> sendMessage(String userMessage) async {
     final url = Uri.parse(
