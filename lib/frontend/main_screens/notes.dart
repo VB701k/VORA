@@ -711,6 +711,10 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
                     }).toList();
 
                     final all = _filter(mapped);
+                    all.sort(
+                      (a, b) =>
+                          (b.isPinned ? 1 : 0).compareTo(a.isPinned ? 1 : 0),
+                    );
 
                     // ✅ Pinned first (client-side) to avoid Firestore index
                     all.sort((a, b) {

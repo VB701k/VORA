@@ -1,7 +1,11 @@
 // lib/backend/services/notes_backend.dart
 //
-// VORA Notes Backend (Final + Index-safe + NO togglePinned)
-// -------------------------------------------------------
+// VORA Notes Backend (Polished + Index-safe)
+// Commits included:
+//  - Commit 1: chore(notes): add module version header
+//  - Commit 2: chore(notes): add debug logger
+//  - Commit 3: chore(notes): log note lifecycle actions (create/update/moveToTrash)
+//
 // Firestore:
 //   users/{uid}/notes/{noteId}
 //   users/{uid}/notes/{noteId}/attachments/{attachmentId}
@@ -10,9 +14,8 @@
 //   users/{uid}/notes/{noteId}/attachments/{filename}
 //
 // IMPORTANT:
-// - streamNotesActive uses ONE orderBy(updatedAt) to avoid composite index errors.
-// - Pinned sorting is done in frontend.
-// - Pin control uses setPinned(noteId, bool) ONLY (no togglePinned).
+// - streamNotesActive uses ONE orderBy(updatedAt) to reduce index issues.
+// - Pinned sorting should be done in frontend.
 //
 // Dependencies:
 //   cloud_firestore, firebase_auth, firebase_storage
@@ -23,9 +26,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+/// ==================== COMMIT 1: VERSION HEADER ====================
 const String kNotesBackendVersion = "1.0.0";
 
+/// ==================== COMMIT 2: DEBUG LOGGER ====================
 void notesLog(String msg) {
+  // Prints only in debug mode (assert runs only in debug)
   assert(() {
     // ignore: avoid_print
     print("[NOTES] $msg");
@@ -39,6 +45,7 @@ class NotesBackendException implements Exception {
   final String message;
   final Object? cause;
   NotesBackendException(this.message, {this.cause});
+
   @override
   String toString() => 'NotesBackendException($message, cause: $cause)';
 }
@@ -105,7 +112,7 @@ class NoteDoc {
 class NoteAttachmentDoc {
   final String id;
   final String fileName;
-  final String type; // PDF / IMG / LINK / OTHER
+  final String type;
   final String sizeLabel;
 
   final String? downloadUrl;
@@ -262,6 +269,7 @@ class NotesBackend {
     _validateTitle(title);
     _validateContent(content);
 
+    /// ✅ Commit 3 log
     notesLog("createNote: ${title.trim()}");
 
     final ref = _notesCol.doc();
@@ -306,6 +314,7 @@ class NotesBackend {
     _validateTitle(newTitle);
     _validateContent(newContent);
 
+    /// ✅ Commit 3 log
     notesLog("updateNote: $noteId");
 
     final updates = <String, dynamic>{};
@@ -331,7 +340,6 @@ class NotesBackend {
     await ref.update(updates);
   }
 
-  /// ✅ Only pin method (no togglePinned)
   Future<void> setPinned(String noteId, bool pinned) async {
     await _noteRef(
       noteId,
@@ -343,6 +351,7 @@ class NotesBackend {
   // =========================================================
 
   Future<void> moveToTrash(String noteId) async {
+    /// ✅ Commit 3 log
     notesLog("moveToTrash: $noteId");
 
     await _noteRef(noteId).update({
@@ -478,14 +487,5 @@ class NotesBackend {
     await _noteRef(
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-  }
-
-  // =========================================================
-  // EXTRA: COUNTS
-  // =========================================================
-
-  Future<int> countActiveNotes() async {
-    final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
-    return snap.size;
   }
 }
