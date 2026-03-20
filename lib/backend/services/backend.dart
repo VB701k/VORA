@@ -225,6 +225,18 @@ class TaskFirestoreService {
     updates['updatedAt'] = FieldValue.serverTimestamp();
     await _taskCol.doc(taskId).update(updates);
   }
+
+  Future<void> completeTask(String taskId, bool currentValue) async {
+    await toggleDone(taskId, currentValue);
+
+    if (!currentValue) {
+      await RewardService.instance.onTaskCompleted();
+      await StreakService.instance.markActiveToday();
+
+      final streak = await StreakService.instance.getCurrentStreak();
+      await RewardService.instance.onStreakMilestone(streak);
+    }
+  }
 }
 
 // =====================================================
