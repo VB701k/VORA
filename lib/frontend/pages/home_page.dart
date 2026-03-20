@@ -15,12 +15,17 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // List of pages for each tab
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    SearchScreen(),
-    AiScreen(),
-    ProfileScreen(),
+  void _goToHome() {
+    setState(() {
+      _selectedIndex = 0;
+    });
+  }
+
+  late final List<Widget> _pages = [
+    const HomeScreen(),
+    SearchScreen(onBackToHome: _goToHome),
+    const AiScreen(),
+    const ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -32,15 +37,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex], // Show selected tab
-
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Color(0xFF172B35),
-        selectedItemColor: Color(0xFF2EC4F1),
-        unselectedItemColor: Color(0xFF9FB4C4),
+        backgroundColor: const Color(0xFF172B35),
+        selectedItemColor: const Color(0xFF2EC4F1),
+        unselectedItemColor: const Color(0xFF9FB4C4),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
