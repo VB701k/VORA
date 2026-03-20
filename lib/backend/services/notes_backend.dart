@@ -26,6 +26,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+const String kNotesBackendVersion = "1.0.0";
+
 /// ==================== Errors ====================
 
 class NotesBackendException implements Exception {
