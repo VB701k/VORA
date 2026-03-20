@@ -320,6 +320,8 @@ class NotesBackend {
     _validateTitle(newTitle);
     _validateContent(newContent);
 
+    notesLog("updateNote: $noteId");
+
     final updates = <String, dynamic>{};
 
     if (title != null) {
