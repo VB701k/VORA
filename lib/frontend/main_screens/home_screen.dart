@@ -4,6 +4,8 @@ import 'package:vora/frontend/pages/task_manager_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
 import 'package:vora/frontend/pages/pomodoro_tab.dart';
 import "package:vora/frontend/main_screens/notes.dart";
+import "package:vora/frontend/pages/calendar_screen.dart";
+import "package:vora/frontend/pages/weekly_analysis_screen.dart";
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

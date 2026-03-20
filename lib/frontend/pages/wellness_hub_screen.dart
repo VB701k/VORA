@@ -54,6 +54,16 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: const Icon(
+            Icons
+                .arrow_back_ios_new_rounded, //Adding the back button naviagtion back to home screen
+            color: WellnessColors.text,
+          ),
+        ),
         const SizedBox(width: 4),
         const Expanded(
           child: Column(
