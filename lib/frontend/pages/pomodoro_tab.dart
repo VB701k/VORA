@@ -79,24 +79,30 @@ class _PomodoroTabState extends State<PomodoroTab> {
     const primary = Color(0xFF64B5F6);
     return Scaffold(
       backgroundColor: bg,
+      appBar: AppBar(
+      backgroundColor: bg,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+      ),
+      title: const Text(
+        "Pomodoro Timer",
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
           child: Column(
             children: [
-              const SizedBox(height: 8),
-
-
-            const Text(
-              "Pomodoro Timer",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
 
             Expanded(
                 child: Center(
