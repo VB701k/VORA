@@ -1,6 +1,6 @@
 // lib/backend/services/notes_backend.dart
 //
-// VORA Notes Backend (Polished + Index-safe)
+// VORA Notes Backend (Polished + Index-free reads)
 // Commits included:
 //  - Commit 1: chore(notes): add module version header
 //  - Commit 2: chore(notes): add debug logger
@@ -14,7 +14,7 @@
 //   users/{uid}/notes/{noteId}/attachments/{filename}
 //
 // IMPORTANT:
-// - streamNotesActive uses ONE orderBy(updatedAt) to reduce index issues.
+// - Notes reads avoid compound Firestore queries to prevent index errors.
 // - Pinned sorting should be done in frontend.
 //
 // Dependencies:
@@ -59,7 +59,7 @@ class NotFoundException extends NotesBackendException {
 }
 
 class ValidationException extends NotesBackendException {
-  ValidationException(String message) : super(message);
+  ValidationException(super.message);
 }
 
 /// ==================== Models ====================
@@ -198,14 +198,18 @@ class NotesBackend {
 
   void _validateTitle(String title) {
     final t = title.trim();
-    if (t.isEmpty) throw ValidationException('Title is required');
-    if (t.length > 80)
+    if (t.isEmpty) {
+      throw ValidationException('Title is required');
+    }
+    if (t.length > 80) {
       throw ValidationException('Title too long (max 80 chars)');
+    }
   }
 
   void _validateContent(String content) {
-    if (content.trim().isEmpty)
+    if (content.trim().isEmpty) {
       throw ValidationException('Content is required');
+    }
   }
 
   String _safeFileName(String fileName) {
@@ -218,23 +222,54 @@ class NotesBackend {
   // NOTES: STREAMS / READ
   // =========================================================
 
-  /// ✅ Index-safe query: filter + ONE orderBy
+  // Sort notes in Dart so reads stay compatible with Firestore's automatic
+  // single-field indexes.
+  int _compareDateDesc(DateTime? a, DateTime? b) {
+    final aMs = a?.millisecondsSinceEpoch ?? 0;
+    final bMs = b?.millisecondsSinceEpoch ?? 0;
+    return bMs.compareTo(aMs);
+  }
+
+  List<NoteDoc> _sortedAndLimited(
+    Iterable<NoteDoc> docs, {
+    required DateTime? Function(NoteDoc note) dateSelector,
+    required int limit,
+  }) {
+    final list = docs.toList();
+    list.sort((a, b) {
+      final dateCompare = _compareDateDesc(dateSelector(a), dateSelector(b));
+      if (dateCompare != 0) return dateCompare;
+      return a.id.compareTo(b.id);
+    });
+
+    if (limit <= 0 || list.length <= limit) return list;
+    return list.take(limit).toList();
+  }
+
   Stream<List<NoteDoc>> streamNotesActive({int limit = 100}) {
     return _notesCol
         .where('isDeleted', isEqualTo: false)
-        .orderBy('updatedAt', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => NoteDoc.fromDoc(d)).toList());
+        .map(
+          (snap) => _sortedAndLimited(
+            snap.docs.map((d) => NoteDoc.fromDoc(d)),
+            dateSelector: (note) => note.updatedAt ?? note.createdAt,
+            limit: limit,
+          ),
+        );
   }
 
   Stream<List<NoteDoc>> streamNotesTrash({int limit = 100}) {
     return _notesCol
         .where('isDeleted', isEqualTo: true)
-        .orderBy('deletedAt', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => NoteDoc.fromDoc(d)).toList());
+        .map(
+          (snap) => _sortedAndLimited(
+            snap.docs.map((d) => NoteDoc.fromDoc(d)),
+            dateSelector: (note) => note.deletedAt ?? note.updatedAt,
+            limit: limit,
+          ),
+        );
   }
 
   Stream<List<NoteDoc>> searchNotes(String query, {int limit = 50}) {
@@ -242,12 +277,17 @@ class NotesBackend {
     if (q.length < 3) return Stream.value(const <NoteDoc>[]);
 
     return _notesCol
-        .where('isDeleted', isEqualTo: false)
         .where('keywords', arrayContains: q)
-        .orderBy('updatedAt', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => NoteDoc.fromDoc(d)).toList());
+        .map(
+          (snap) => _sortedAndLimited(
+            snap.docs
+                .map((d) => NoteDoc.fromDoc(d))
+                .where((note) => !note.isDeleted),
+            dateSelector: (note) => note.updatedAt ?? note.createdAt,
+            limit: limit,
+          ),
+        );
   }
 
   Future<NoteDoc> getNoteById(String noteId) async {

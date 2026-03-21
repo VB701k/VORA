@@ -39,6 +39,7 @@ class NoteModel {
   final String metaLeft;
   final String actionText;
   final bool featured;
+  final DateTime? updatedAt;
 
   final bool isPinned;
   final bool isDeleted;
@@ -49,6 +50,7 @@ class NoteModel {
     required this.description,
     required this.metaLeft,
     required this.actionText,
+    this.updatedAt,
     this.featured = false,
     this.isPinned = false,
     this.isDeleted = false,
@@ -59,6 +61,7 @@ class NoteModel {
     String? description,
     String? metaLeft,
     String? actionText,
+    DateTime? updatedAt,
     bool? featured,
     bool? isPinned,
     bool? isDeleted,
@@ -69,6 +72,7 @@ class NoteModel {
       description: description ?? this.description,
       metaLeft: metaLeft ?? this.metaLeft,
       actionText: actionText ?? this.actionText,
+      updatedAt: updatedAt ?? this.updatedAt,
       featured: featured ?? this.featured,
       isPinned: isPinned ?? this.isPinned,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -175,7 +179,7 @@ class NoteCard extends StatelessWidget {
                   child: Text(
                     note.metaLeft,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.35),
+                      color: Colors.white.withValues(alpha: 0.35),
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),
@@ -545,6 +549,18 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
         .toList();
   }
 
+  int _compareUpdatedDesc(NoteModel a, NoteModel b) {
+    final aMs = a.updatedAt?.millisecondsSinceEpoch ?? 0;
+    final bMs = b.updatedAt?.millisecondsSinceEpoch ?? 0;
+    return bMs.compareTo(aMs);
+  }
+
+  int _comparePinnedThenUpdated(NoteModel a, NoteModel b) {
+    final pinCompare = (b.isPinned ? 1 : 0).compareTo(a.isPinned ? 1 : 0);
+    if (pinCompare != 0) return pinCompare;
+    return _compareUpdatedDesc(a, b);
+  }
+
   Future<void> _openCreate() async {
     final res = await Navigator.push<NoteEditorResult>(
       context,
@@ -705,28 +721,22 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
                         description: d.summary.isEmpty ? d.content : d.summary,
                         metaLeft: d.updatedAt == null ? "JUST NOW" : "UPDATED",
                         actionText: "Open",
+                        updatedAt: d.updatedAt ?? d.createdAt,
                         isPinned: d.isPinned,
                         isDeleted: d.isDeleted,
                       );
                     }).toList();
 
-                    final all = _filter(mapped);
-                    all.sort(
-                      (a, b) =>
-                          (b.isPinned ? 1 : 0).compareTo(a.isPinned ? 1 : 0),
-                    );
+                    final filtered = _filter(mapped);
+                    final all = List<NoteModel>.of(filtered)
+                      ..sort(_comparePinnedThenUpdated);
 
-                    // ✅ Pinned first (client-side) to avoid Firestore index
-                    all.sort((a, b) {
-                      final pinCompare = (b.isPinned ? 1 : 0).compareTo(
-                        a.isPinned ? 1 : 0,
-                      );
-                      if (pinCompare != 0) return pinCompare;
-                      return 0;
-                    });
-
-                    final recent = all.take(10).toList();
-                    final pinned = all.where((n) => n.isPinned).toList();
+                    // Keep Firestore reads simple, then shape each tab in Dart.
+                    final recent = (List<NoteModel>.of(
+                      filtered,
+                    )..sort(_compareUpdatedDesc)).take(10).toList();
+                    final pinned = filtered.where((n) => n.isPinned).toList()
+                      ..sort(_compareUpdatedDesc);
 
                     return TabBarView(
                       controller: _tabController,
