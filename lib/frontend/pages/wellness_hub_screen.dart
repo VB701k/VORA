@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'mindful_pop_screen.dart';
 import 'mood_tracker.dart';
 import 'box_breathing_screen.dart';
 
@@ -227,18 +227,18 @@ class MindfulGamesSection extends StatelessWidget {
       mainAxisSpacing: 14,
       crossAxisSpacing: 14,
       childAspectRatio: 1.35,
-      children: const [
-        MindfulGameTile(
+      children: [
+        const MindfulGameTile(
           title: 'Zen Pattern',
           subtitle: 'Visual matching',
           icon: Icons.grid_view_rounded,
         ),
-        MindfulGameTile(
+        const MindfulGameTile(
           title: 'Flow State',
           subtitle: 'Fluid physics',
           icon: Icons.water_drop_rounded,
         ),
-        MindfulGameTile(
+        const MindfulGameTile(
           title: 'Starlight',
           subtitle: 'Connect dots',
           icon: Icons.auto_awesome_rounded,
@@ -247,6 +247,12 @@ class MindfulGamesSection extends StatelessWidget {
           title: 'Bubble Pop',
           subtitle: 'Stress relief',
           icon: Icons.bubble_chart_rounded,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MindfulPopScreen()),
+            );
+          },
         ),
       ],
     );
@@ -257,37 +263,45 @@ class MindfulGameTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const MindfulGameTile({
     super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: WellnessColors.card,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: WellnessColors.stroke),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: WellnessColors.mint),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(
-              color: WellnessColors.text,
-              fontWeight: FontWeight.w900,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WellnessColors.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: WellnessColors.stroke),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: WellnessColors.mint),
+            const Spacer(),
+            Text(
+              title,
+              style: const TextStyle(
+                color: WellnessColors.text,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          Text(subtitle, style: const TextStyle(color: WellnessColors.textDim)),
-        ],
+            Text(
+              subtitle,
+              style: const TextStyle(color: WellnessColors.textDim),
+            ),
+          ],
+        ),
       ),
     );
   }
