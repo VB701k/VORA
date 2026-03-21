@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'mindful_pop_screen.dart';
 import 'mood_tracker.dart';
+import 'box_breathing_screen.dart';
 
 class WellnessColors {
   static const bg = Color(0xFF0B1F1C);
@@ -53,6 +54,16 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: const Icon(
+            Icons
+                .arrow_back_ios_new_rounded, //Adding the back button naviagtion back to home screen
+            color: WellnessColors.text,
+          ),
+        ),
         const SizedBox(width: 4),
         const Expanded(
           child: Column(
@@ -116,14 +127,20 @@ class BreathingSection extends StatelessWidget {
       height: 190,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        children: const [
+        children: [
           BreathingCard(
             title: 'Box Breathing',
             subtitle: 'Reset your focus and calm your nervous system.',
             minutes: 4,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BoxBreathingScreen()),
+              );
+            },
           ),
-          SizedBox(width: 14),
-          BreathingCard(
+          const SizedBox(width: 14),
+          const BreathingCard(
             title: '4-7-8 Relax',
             subtitle: 'Natural tranquility and better sleep.',
             minutes: 5,
@@ -138,53 +155,61 @@ class BreathingCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final int minutes;
+  final VoidCallback? onTap;
 
   const BreathingCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.minutes,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: WellnessColors.card,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: WellnessColors.stroke),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: WellnessColors.card2,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.landscape_rounded,
-                  color: WellnessColors.textDim,
-                  size: 42,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 250,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WellnessColors.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: WellnessColors.stroke),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: WellnessColors.card2,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.landscape_rounded,
+                    color: WellnessColors.textDim,
+                    size: 42,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: WellnessColors.text,
-              fontWeight: FontWeight.w900,
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: WellnessColors.text,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: WellnessColors.textDim)),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(color: WellnessColors.textDim),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -202,18 +227,18 @@ class MindfulGamesSection extends StatelessWidget {
       mainAxisSpacing: 14,
       crossAxisSpacing: 14,
       childAspectRatio: 1.35,
-      children: const [
-        MindfulGameTile(
+      children: [
+        const MindfulGameTile(
           title: 'Zen Pattern',
           subtitle: 'Visual matching',
           icon: Icons.grid_view_rounded,
         ),
-        MindfulGameTile(
+        const MindfulGameTile(
           title: 'Flow State',
           subtitle: 'Fluid physics',
           icon: Icons.water_drop_rounded,
         ),
-        MindfulGameTile(
+        const MindfulGameTile(
           title: 'Starlight',
           subtitle: 'Connect dots',
           icon: Icons.auto_awesome_rounded,
@@ -222,6 +247,12 @@ class MindfulGamesSection extends StatelessWidget {
           title: 'Bubble Pop',
           subtitle: 'Stress relief',
           icon: Icons.bubble_chart_rounded,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MindfulPopScreen()),
+            );
+          },
         ),
       ],
     );
@@ -232,37 +263,45 @@ class MindfulGameTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const MindfulGameTile({
     super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: WellnessColors.card,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: WellnessColors.stroke),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: WellnessColors.mint),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(
-              color: WellnessColors.text,
-              fontWeight: FontWeight.w900,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WellnessColors.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: WellnessColors.stroke),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: WellnessColors.mint),
+            const Spacer(),
+            Text(
+              title,
+              style: const TextStyle(
+                color: WellnessColors.text,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          Text(subtitle, style: const TextStyle(color: WellnessColors.textDim)),
-        ],
+            Text(
+              subtitle,
+              style: const TextStyle(color: WellnessColors.textDim),
+            ),
+          ],
+        ),
       ),
     );
   }
