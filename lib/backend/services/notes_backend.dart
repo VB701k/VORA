@@ -533,4 +533,9 @@ class NotesBackend {
     final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
     return snap.size;
   }
+
+  Future<int> countTrashNotes() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
+    return snap.size;
+  }
 }
