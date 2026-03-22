@@ -16,3 +16,4 @@ weekly analysis - w
 study time - w
 mood tracker - w 
 quotes - wm
+calendar - w
