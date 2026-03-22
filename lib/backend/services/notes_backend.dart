@@ -472,10 +472,7 @@ class NotesBackend {
       'uploadedAt': FieldValue.serverTimestamp(),
     });
 
-    await _noteRef(
-      noteId,
-    ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-
+    await bumpUpdateAt(noteId);
     return attRef.id;
   }
 
