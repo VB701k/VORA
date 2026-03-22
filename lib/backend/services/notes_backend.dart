@@ -528,4 +528,9 @@ class NotesBackend {
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
   }
+
+  Future<int> countActiveNotes() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
+    return snap.size;
+  }
 }
