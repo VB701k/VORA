@@ -1,2 +1,3 @@
 login test - w
 signup test -w
+foget pass - w
