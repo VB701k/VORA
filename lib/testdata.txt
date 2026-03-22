@@ -3,3 +3,4 @@ signup test -w
 foget pass - w
 home page - w
 search page - w
+ai page - wt
