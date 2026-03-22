@@ -519,9 +519,7 @@ class NotesBackend {
 
     await ref.delete();
 
-    await _noteRef(
-      noteId,
-    ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    await bumpUpdatedAt(noteId);
   }
 
   Future<int> countActiveNotes() async {
