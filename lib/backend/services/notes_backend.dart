@@ -472,10 +472,7 @@ class NotesBackend {
       'uploadedAt': FieldValue.serverTimestamp(),
     });
 
-    await _noteRef(
-      noteId,
-    ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-
+    await bumpUpdatedAt(noteId);
     return attRef.id;
   }
 
@@ -498,9 +495,7 @@ class NotesBackend {
       'uploadedAt': FieldValue.serverTimestamp(),
     });
 
-    await _noteRef(
-      noteId,
-    ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    await bumpUpdatedAt(noteId);
 
     return attRef.id;
   }
@@ -524,8 +519,136 @@ class NotesBackend {
 
     await ref.delete();
 
+    await bumpUpdatedAt(noteId);
+  }
+
+  Future<int> countActiveNotes() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
+    return snap.size;
+  }
+
+  Future<int> countTrashNotes() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
+    return snap.size;
+  }
+
+  Future<void> bumpUpdatedAt(String noteId) async {
     await _noteRef(
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+  }
+
+  Future<void> restoreAllFromTrash() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
+    final batch = _db.batch();
+
+    for (final d in snap.docs) {
+      batch.update(d.reference, {
+        'isDeleted': false,
+        'deletedAt': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> emptyTrash() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
+
+    for (final d in snap.docs) {
+      await hardDeleteNote(d.id);
+    }
+  }
+
+  Future<List<String>> listAllTags() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
+
+    final set = <String>{};
+
+    for (final d in snap.docs) {
+      final data = d.data();
+      final tags = List<String>.from(
+        (data['tags'] ?? const <dynamic>[]) as List,
+      );
+
+      for (final t in tags) {
+        final clean = t.trim();
+        if (clean.isNotEmpty) set.add(clean);
+      }
+    }
+
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  Future<void> renameTagEverywhere({
+    required String from,
+    required String to,
+  }) async {
+    final oldTag = from.trim();
+    final newTag = to.trim();
+
+    if (oldTag.isEmpty || newTag.isEmpty) return;
+
+    final snap = await _notesCol.where('tags', arrayContains: oldTag).get();
+    final batch = _db.batch();
+
+    for (final d in snap.docs) {
+      final data = d.data();
+      final tags = List<String>.from(
+        (data['tags'] ?? const <dynamic>[]) as List,
+      );
+
+      final updatedTags = tags
+          .map((t) => t == oldTag ? newTag : t)
+          .toSet()
+          .toList();
+
+      updatedTags.sort();
+
+      batch.update(d.reference, {
+        'tags': updatedTags,
+        'updatedAt': FieldValue.serverTimestamp(),
+        // keep keywords updated too (important)
+        'keywords': _keywordsFrom(
+          (data['title'] ?? '').toString(),
+          (data['content'] ?? '').toString(),
+          updatedTags,
+        ),
+      });
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> removeTagEverywhere(String tag) async {
+    final t = tag.trim();
+    if (t.isEmpty) return;
+
+    final snap = await _notesCol.where('tags', arrayContains: t).get();
+    final batch = _db.batch();
+
+    for (final d in snap.docs) {
+      final data = d.data();
+      final tags = List<String>.from(
+        (data['tags'] ?? const <dynamic>[]) as List,
+      );
+
+      final updatedTags = tags.where((x) => x != t).toList()..sort();
+
+      batch.update(d.reference, {
+        'tags': updatedTags,
+        'updatedAt': FieldValue.serverTimestamp(),
+        // update keywords too
+        'keywords': _keywordsFrom(
+          (data['title'] ?? '').toString(),
+          (data['content'] ?? '').toString(),
+          updatedTags,
+        ),
+      });
+    }
+
+    await batch.commit();
   }
 }
