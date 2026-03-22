@@ -495,7 +495,7 @@ class NotesBackend {
       'uploadedAt': FieldValue.serverTimestamp(),
     });
 
-    await bumpUpdateAt(noteId);
+    await bumpUpdatedAt(noteId);
 
     return attRef.id;
   }
@@ -534,7 +534,7 @@ class NotesBackend {
     return snap.size;
   }
 
-  Future<void> bumpUpdateAt(String noteId) async {
+  Future<void> bumpUpdatedAt(String noteId) async {
     await _noteRef(
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
