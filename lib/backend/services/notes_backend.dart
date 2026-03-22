@@ -581,4 +581,44 @@ class NotesBackend {
     final list = set.toList()..sort();
     return list;
   }
+
+  Future<void> renameTagEverywhere({
+    required String from,
+    required String to,
+  }) async {
+    final oldTag = from.trim();
+    final newTag = to.trim();
+
+    if (oldTag.isEmpty || newTag.isEmpty) return;
+
+    final snap = await _notesCol.where('tags', arrayContains: oldTag).get();
+    final batch = _db.batch();
+
+    for (final d in snap.docs) {
+      final data = d.data();
+      final tags = List<String>.from(
+        (data['tags'] ?? const <dynamic>[]) as List,
+      );
+
+      final updatedTags = tags
+          .map((t) => t == oldTag ? newTag : t)
+          .toSet()
+          .toList();
+
+      updatedTags.sort();
+
+      batch.update(d.reference, {
+        'tags': updatedTags,
+        'updatedAt': FieldValue.serverTimestamp(),
+        // keep keywords updated too (important)
+        'keywords': _keywordsFrom(
+          (data['title'] ?? '').toString(),
+          (data['content'] ?? '').toString(),
+          updatedTags,
+        ),
+      });
+    }
+
+    await batch.commit();
+  }
 }
