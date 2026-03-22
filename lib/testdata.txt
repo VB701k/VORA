@@ -13,3 +13,4 @@ pomodoro - wm
 cw breakdown - wf
 task manager - w
 weekly analysis - w
+study time - w
