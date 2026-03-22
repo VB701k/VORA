@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/home_profile_service.dart';
+
 import 'package:vora/frontend/pages/task_manager_screen.dart';
 import 'package:vora/frontend/pages/wellness_hub_screen.dart';
 import 'package:vora/frontend/pages/pomodoro_tab.dart';
-import "package:vora/frontend/main_screens/notes.dart";
-import "package:vora/frontend/pages/calendar_screen.dart";
-import "package:vora/frontend/pages/weekly_analysis_screen.dart";
+import 'package:vora/frontend/main_screens/notes.dart';
+import 'package:vora/frontend/pages/calendar_screen.dart';
+import 'package:vora/frontend/pages/weekly_analysis_screen.dart';
+
+import 'package:vora/backend/services/quotes_services.dart';
+import 'package:vora/backend/services/streak_services.dart';
+import 'package:vora/frontend/pages/quotes_page.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -33,7 +38,8 @@ class HomeScreen extends StatelessWidget {
               _buildTopBar(),
               const SizedBox(height: 26),
 
-              _buildHeroCard(),
+              // ✅ must pass context for navigation
+              _buildHeroCard(context),
               const SizedBox(height: 28),
 
               _buildSectionTitle("QUICK ACCESS"),
@@ -112,63 +118,177 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A3540), Color(0xFF12262F)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  /// ✅ Motivation card: Quote + Streak + Tap opens QuotesPage
+  Widget _buildHeroCard(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: () {
+        // ✅ Correct Navigator
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const QuotesPage()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A3540), Color(0xFF12262F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: stroke),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
         ),
-        border: Border.all(color: stroke),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: accentSoft,
-              borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: accentSoft,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: accent,
+                size: 28,
+              ),
             ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              color: accent,
-              size: 28,
+            const SizedBox(width: 14),
+
+            Expanded(
+              child: FutureBuilder<List<dynamic>>(
+                future: Future.wait([
+                  QuotesService.instance
+                      .getRandomQuote(), // Map<String,dynamic>?
+                  StreakService.instance.getCurrentStreak(), // int
+                ]),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Loading motivation…",
+                          style: TextStyle(
+                            color: text,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Tap to open more quotes.",
+                          style: TextStyle(
+                            color: textDim,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  if (snap.hasError) {
+                    return Text(
+                      "Motivation error: ${snap.error}",
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    );
+                  }
+
+                  final list = snap.data ?? const [];
+                  final quote =
+                      (list.isNotEmpty ? list[0] : null)
+                          as Map<String, dynamic>?;
+                  final streak = (list.length > 1 ? list[1] : 0) as int;
+
+                  final quoteText =
+                      (quote?['text'] ?? 'Stay consistent today ✨').toString();
+                  final author = (quote?['author'] ?? 'Unknown').toString();
+                  final category = (quote?['category'] ?? 'Motivation')
+                      .toString();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '"$quoteText"',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "— $author • $category",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: textDim,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.15),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.local_fire_department_rounded,
+                                  color: Colors.orangeAccent,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "$streak day",
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Stay focused today",
-                  style: TextStyle(
-                    color: text,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Open your tools quickly and keep your study flow going.",
-                  style: TextStyle(color: textDim, fontSize: 13, height: 1.4),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -202,7 +322,6 @@ class HomeScreen extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (_) => const StudyNotesScreen()),
             );
-            //  navigate to Notes
           },
         ),
         _QuickTile(
@@ -216,7 +335,6 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
-
         _QuickTile(
           title: "Mental Wellness",
           subtitle: "Relax your mind",
@@ -228,7 +346,6 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
-
         _QuickTile(
           title: "Weekly Analytics",
           subtitle: "Track your progress",
@@ -276,7 +393,12 @@ class HomeScreen extends StatelessWidget {
         _ShortcutTile(
           title: "Motivation",
           icon: Icons.auto_awesome_rounded,
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const QuotesPage()),
+            );
+          },
         ),
         _ShortcutTile(
           title: "Add",
