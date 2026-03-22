@@ -3,7 +3,10 @@
 login test - w
 signup test -w
 foget pass - w
+
 home page - w
 search page - w
 ai page - wt
 profile page - wm
+
+pomodoro - wm
