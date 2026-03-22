@@ -552,4 +552,12 @@ class NotesBackend {
 
     await batch.commit();
   }
+
+  Future<void> emptyTrash() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
+
+    for (final d in snap.docs) {
+      await hardDeleteNote(d.id);
+    }
+  }
 }
