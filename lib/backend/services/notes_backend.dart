@@ -560,4 +560,25 @@ class NotesBackend {
       await hardDeleteNote(d.id);
     }
   }
+
+  Future<List<String>> listAllTags() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: false).get();
+
+    final set = <String>{};
+
+    for (final d in snap.docs) {
+      final data = d.data();
+      final tags = List<String>.from(
+        (data['tags'] ?? const <dynamic>[]) as List,
+      );
+
+      for (final t in tags) {
+        final clean = t.trim();
+        if (clean.isNotEmpty) set.add(clean);
+      }
+    }
+
+    final list = set.toList()..sort();
+    return list;
+  }
 }
