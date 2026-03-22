@@ -3,20 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:vora/backend/services/notification_service.dart';
 import 'package:vora/frontend/pages/login_page.dart';
 
-//  Add this import ONLY if you created the QuotesService file I gave you
-import 'package:vora/backend/services/quotes_services.dart';
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  //  Initialize Firebase
+  // Initialize Firebase
   await Firebase.initializeApp();
 
-  //  Seed quotes (safe: only adds if quotes collection is empty)
-  // If you don't have quotes_service.dart yet, comment this line.
-  await QuotesService.instance.seedQuotesIfEmpty();
-
-  //  Initialize Notification system
+  // Initialize Notification system
   await NotificationService().init();
 
   runApp(const MyApp());
@@ -30,7 +23,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      theme: ThemeData( // ThemeData
+      // App theme
+      theme: ThemeData(
         fontFamily: 'Arial',
         scaffoldBackgroundColor: Colors.black,
         colorScheme: ColorScheme.fromSeed(
@@ -40,6 +34,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
 
+      // First screen when app starts
       home: const LoginPage(),
     );
   }

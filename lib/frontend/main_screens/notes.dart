@@ -1,5 +1,5 @@
 // lib/frontend/notes/notes_module.dart
-// ONE-FILE NOTES MODULE (Polished + Backend Connected + Back Button)
+// ONE-FILE NOTES MODULE (Polished + Backend Connected)
 
 import 'package:flutter/material.dart';
 import 'package:vora/backend/services/notes_backend.dart';
@@ -632,37 +632,26 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-
-      // ✅ BACK BUTTON ADDED HERE
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white70,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Study Notes',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-        ),
-        centerTitle: true,
-      ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: _openCreate,
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add_rounded),
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // ❌ removed the old big title text (AppBar already shows it)
+              const Text(
+                'Study Notes',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 14),
+
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
@@ -742,10 +731,10 @@ class _StudyNotesScreenState extends State<StudyNotesScreen>
                     final all = List<NoteModel>.of(filtered)
                       ..sort(_comparePinnedThenUpdated);
 
+                    // Keep Firestore reads simple, then shape each tab in Dart.
                     final recent = (List<NoteModel>.of(
                       filtered,
                     )..sort(_compareUpdatedDesc)).take(10).toList();
-
                     final pinned = filtered.where((n) => n.isPinned).toList()
                       ..sort(_compareUpdatedDesc);
 
