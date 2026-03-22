@@ -538,4 +538,10 @@ class NotesBackend {
     final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
     return snap.size;
   }
+
+  Future<void> bumpUpdateAt(String noteId) async {
+    await _noteRef(
+      noteId,
+    ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+  }
 }
