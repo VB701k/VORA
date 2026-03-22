@@ -1,41 +1,10 @@
-import 'dart:math' as math;
-
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:vora/backend/models/weekly_analysis_data.dart';
-import 'package:vora/backend/services/weekly_analysis_service.dart';
-import 'package:vora/frontend/pages/study_time_detail_page.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:vora/frontend/pages/task_progress_detail_page.dart';
+import 'package:vora/frontend/pages/study_time_detail_page.dart';
 
-class WeeklyAnalysisScreen extends StatefulWidget {
+class WeeklyAnalysisScreen extends StatelessWidget {
   const WeeklyAnalysisScreen({super.key});
-
-  @override
-  State<WeeklyAnalysisScreen> createState() => _WeeklyAnalysisScreenState();
-}
-
-class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
-  late Future<WeeklyAnalysisData> _analysisFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _analysisFuture = _loadAnalysis();
-  }
-
-  Future<WeeklyAnalysisData> _loadAnalysis({bool forceRefresh = false}) {
-    return WeeklyAnalysisService.instance.getOrGenerateWeeklyAnalysis(
-      forceRefresh: forceRefresh,
-    );
-  }
-
-  Future<void> _refresh() async {
-    final future = _loadAnalysis(forceRefresh: true);
-    setState(() {
-      _analysisFuture = future;
-    });
-    await future;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,182 +18,79 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
           ),
         ),
         child: SafeArea(
-          child: FutureBuilder<WeeklyAnalysisData>(
-            future: _analysisFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const _LoadingView();
-              }
-
-              if (snapshot.hasError) {
-                return _ErrorView(
-                  onRetry: () {
-                    setState(() {
-                      _analysisFuture = _loadAnalysis(forceRefresh: true);
-                    });
-                  },
-                );
-              }
-
-              final data = snapshot.data;
-              if (data == null) {
-                return _ErrorView(
-                  onRetry: () {
-                    setState(() {
-                      _analysisFuture = _loadAnalysis(forceRefresh: true);
-                    });
-                  },
-                );
-              }
-
-              return RefreshIndicator(
-                onRefresh: _refresh,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _TopBar(
-                        title: "Weekly Analysis",
-                        subtitle: "Overview of your week",
-                        onBack: () => Navigator.of(context).maybePop(),
-                        onRefresh: _refresh,
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      _SummaryHeroCard(data: data),
-
-                      const SizedBox(height: 18),
-
-                      const _SectionHeading(
-                        title: "Task Progress",
-                        subtitle:
-                            "See how much of your weekly work was completed based on your actual stored tasks.",
-                      ),
-                      const SizedBox(height: 12),
-
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const TaskProgressDetailPage(),
-                            ),
-                          );
-                        },
-                        child: _TaskCompletionCard(data: data),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      const _SectionHeading(
-                        title: "Study Time",
-                        subtitle:
-                            "Track how many hours you studied this week and how your study pattern changed day by day.",
-                      ),
-                      const SizedBox(height: 12),
-
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const StudyTimeDetailPage(),
-                            ),
-                          );
-                        },
-                        child: _StudyHoursCard(data: data),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      const _SectionHeading(
-                        title: "Mood Patterns",
-                        subtitle:
-                            "Review your daily mood across the week and spot where you may need more balance or rest.",
-                      ),
-                      const SizedBox(height: 12),
-
-                      _MoodRowCard(moodEmojis: data.moodEmojis),
-
-                      const SizedBox(height: 14),
-
-                      _MoodInsightCard(
-                        moodSummary: data.moodSummary,
-                        motivationalMessage: data.motivationalMessage,
-                      ),
-                    ],
-                  ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TopBar(
+                  title: "Weekly Analysis",
+                  subtitle: "Overview of your week",
+                  onBack: () => Navigator.of(context).maybePop(),
                 ),
-              );
-            },
+
+                const SizedBox(height: 18),
+
+                const _SummaryHeroCard(),
+
+                const SizedBox(height: 18),
+
+                const _SectionHeading(
+                  title: "Task Progress",
+                  subtitle:
+                      "See how much of your weekly work was completed and how it changed compared to last week.",
+                ),
+                const SizedBox(height: 12),
+
+                /// TASK PROGRESS CLICK
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TaskProgressDetailPage(),
+                      ),
+                    );
+                  },
+                  child: const _TaskCompletionCard(),
+                ),
+
+                const SizedBox(height: 20),
+
+                const _SectionHeading(
+                  title: "Study Time",
+                  subtitle:
+                      "Track how many hours you studied this week and how your study pattern changed day by day.",
+                ),
+                const SizedBox(height: 12),
+
+                /// STUDY TIME CLICK
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StudyTimeDetailPage(),
+                      ),
+                    );
+                  },
+                  child: const _StudyHoursCard(),
+                ),
+                const SizedBox(height: 20),
+
+                const _SectionHeading(
+                  title: "Mood Patterns",
+                  subtitle:
+                      "Review your daily mood across the week and spot days where you may need more balance or rest.",
+                ),
+                const SizedBox(height: 12),
+                const _MoodRowCard(),
+
+                const SizedBox(height: 14),
+                const _MoodInsightCard(),
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: Color(0xFF73D7FF)),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final VoidCallback onRetry;
-
-  const _ErrorView({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: Colors.white70,
-              size: 42,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "Could not load weekly analysis",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Please try refreshing the screen.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withAlpha(180),
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF245A66),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text("Retry"),
-            ),
-          ],
         ),
       ),
     );
@@ -235,13 +101,11 @@ class _TopBar extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onBack;
-  final Future<void> Function() onRefresh;
 
   const _TopBar({
     required this.title,
     required this.subtitle,
     required this.onBack,
-    required this.onRefresh,
   });
 
   @override
@@ -275,10 +139,7 @@ class _TopBar extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          onPressed: () => onRefresh(),
-          icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-        ),
+        const SizedBox(width: 40),
       ],
     );
   }
@@ -344,14 +205,10 @@ class _GlassCard extends StatelessWidget {
 }
 
 class _SummaryHeroCard extends StatelessWidget {
-  final WeeklyAnalysisData data;
-
-  const _SummaryHeroCard({required this.data});
+  const _SummaryHeroCard();
 
   @override
   Widget build(BuildContext context) {
-    final strongestDay = _findStrongestDay(data);
-
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -398,11 +255,9 @@ class _SummaryHeroCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  strongestDay == null
-                      ? "Your weekly data is building up."
-                      : "$strongestDay was your strongest day.",
-                  style: const TextStyle(
+                const Text(
+                  "Wednesday was your strongest day.",
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -410,7 +265,7 @@ class _SummaryHeroCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "You completed ${data.taskCompletionPercent}% of your planned work and studied for ${data.studyHoursLabel} this week.",
+                  "You completed 85% of your planned work and studied for 14 hours 32 minutes this week.",
                   style: TextStyle(
                     color: Colors.white.withAlpha(220),
                     fontSize: 13,
@@ -427,46 +282,27 @@ class _SummaryHeroCard extends StatelessWidget {
 }
 
 class _TaskCompletionCard extends StatelessWidget {
-  final WeeklyAnalysisData data;
-
-  const _TaskCompletionCard({required this.data});
+  const _TaskCompletionCard();
 
   @override
   Widget build(BuildContext context) {
-    return _GlassCard(
-      child: _TaskCompletionContent(
-        percent: data.taskCompletionPercent,
-        completedTasks: data.completedTasks,
-        pendingTasks: data.pendingTasks,
-        totalTasks: data.totalTasks,
-        taskSummary: data.taskSummary,
-        chartValues: data.taskChartValues,
-      ),
+    const percent = 85;
+    const delta = 5;
+
+    return const _GlassCard(
+      child: _TaskCompletionContent(percent: percent, delta: delta),
     );
   }
 }
 
 class _TaskCompletionContent extends StatelessWidget {
   final int percent;
-  final int completedTasks;
-  final int pendingTasks;
-  final int totalTasks;
-  final String taskSummary;
-  final List<double> chartValues;
+  final int delta;
 
-  const _TaskCompletionContent({
-    required this.percent,
-    required this.completedTasks,
-    required this.pendingTasks,
-    required this.totalTasks,
-    required this.taskSummary,
-    required this.chartValues,
-  });
+  const _TaskCompletionContent({required this.percent, required this.delta});
 
   @override
   Widget build(BuildContext context) {
-    final safePercent = percent.clamp(0, 100);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -479,6 +315,7 @@ class _TaskCompletionContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+
         Row(
           children: [
             SizedBox(
@@ -488,13 +325,13 @@ class _TaskCompletionContent extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   CircularProgressIndicator(
-                    value: safePercent / 100,
+                    value: percent / 100,
                     strokeWidth: 7,
                     backgroundColor: Colors.white12,
                     valueColor: const AlwaysStoppedAnimation(Color(0xFF73D7FF)),
                   ),
                   Text(
-                    "$safePercent%",
+                    "$percent%",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -519,7 +356,7 @@ class _TaskCompletionContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    taskSummary,
+                    "You completed most of the work scheduled for this week.",
                     style: TextStyle(
                       color: Colors.white.withAlpha(210),
                       fontSize: 12.5,
@@ -528,7 +365,7 @@ class _TaskCompletionContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "$completedTasks completed • $pendingTasks pending • $totalTasks total",
+                    "+$delta% compared to last week",
                     style: const TextStyle(
                       color: Color(0xFF7CFFB2),
                       fontSize: 13,
@@ -540,6 +377,7 @@ class _TaskCompletionContent extends StatelessWidget {
             ),
           ],
         ),
+
         const SizedBox(height: 18),
         const Text(
           "Daily completion pattern",
@@ -550,25 +388,22 @@ class _TaskCompletionContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        SizedBox(height: 150, child: _TaskBarChart(values: chartValues)),
+        const SizedBox(height: 150, child: _TaskBarChart()),
       ],
     );
   }
 }
 
 class _TaskBarChart extends StatelessWidget {
-  final List<double> values;
+  const _TaskBarChart();
 
-  const _TaskBarChart({required this.values});
+  final List<double> values = const [18, 55, 72, 46, 78, 26, 22];
 
   @override
   Widget build(BuildContext context) {
-    final safeValues = _normalizeToSeven(values);
-    final maxY = _taskChartMaxY(safeValues);
-
     return BarChart(
       BarChartData(
-        maxY: maxY,
+        maxY: 100,
         minY: 0,
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
@@ -600,7 +435,6 @@ class _TaskBarChart extends StatelessWidget {
                 if (i < 0 || i >= labels.length) {
                   return const SizedBox.shrink();
                 }
-
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
@@ -616,8 +450,8 @@ class _TaskBarChart extends StatelessWidget {
             ),
           ),
         ),
-        barGroups: List.generate(safeValues.length, (i) {
-          final v = safeValues[i];
+        barGroups: List.generate(values.length, (i) {
+          final v = values[i];
           return BarChartGroupData(
             x: i,
             barRods: [
@@ -643,19 +477,15 @@ class _TaskBarChart extends StatelessWidget {
 }
 
 class _StudyHoursCard extends StatelessWidget {
-  final WeeklyAnalysisData data;
-
-  const _StudyHoursCard({required this.data});
+  const _StudyHoursCard();
 
   @override
   Widget build(BuildContext context) {
-    return _GlassCard(
-      child: _StudyHoursContent(
-        hoursLabel: data.studyHoursLabel,
-        delta: data.studyDeltaPercent,
-        summary: data.studySummary,
-        chartValues: data.studyChartValues,
-      ),
+    const hoursLabel = '14h 32m';
+    const delta = -2;
+
+    return const _GlassCard(
+      child: _StudyHoursContent(hoursLabel: hoursLabel, delta: delta),
     );
   }
 }
@@ -663,22 +493,14 @@ class _StudyHoursCard extends StatelessWidget {
 class _StudyHoursContent extends StatelessWidget {
   final String hoursLabel;
   final int delta;
-  final String summary;
-  final List<double> chartValues;
 
-  const _StudyHoursContent({
-    required this.hoursLabel,
-    required this.delta,
-    required this.summary,
-    required this.chartValues,
-  });
+  const _StudyHoursContent({required this.hoursLabel, required this.delta});
 
   @override
   Widget build(BuildContext context) {
     final deltaColor = delta >= 0
         ? const Color(0xFF7CFFB2)
         : const Color(0xFFFF7B7B);
-
     final deltaText = delta >= 0
         ? '+$delta% compared to last week'
         : '$delta% compared to last week';
@@ -697,7 +519,7 @@ class _StudyHoursContent extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           hoursLabel,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: 28,
             fontWeight: FontWeight.w900,
@@ -705,7 +527,7 @@ class _StudyHoursContent extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          summary,
+          "This shows the total number of hours you focused on your work this week.",
           style: TextStyle(
             color: Colors.white.withAlpha(210),
             fontSize: 12.5,
@@ -731,31 +553,33 @@ class _StudyHoursContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        SizedBox(height: 180, child: _StudyLineChart(values: chartValues)),
+        const SizedBox(height: 180, child: _StudyLineChart()),
       ],
     );
   }
 }
 
 class _StudyLineChart extends StatelessWidget {
-  final List<double> values;
+  const _StudyLineChart();
 
-  const _StudyLineChart({required this.values});
+  final List<FlSpot> spots = const [
+    FlSpot(0, 2.2),
+    FlSpot(1, 3.4),
+    FlSpot(2, 2.6),
+    FlSpot(3, 3.1),
+    FlSpot(4, 2.2),
+    FlSpot(5, 2.8),
+    FlSpot(6, 5.6),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final safeValues = _normalizeToSeven(values);
-    final spots = List.generate(
-      safeValues.length,
-      (i) => FlSpot(i.toDouble(), safeValues[i]),
-    );
-
     return LineChart(
       LineChartData(
         minX: 0,
         maxX: 6,
         minY: 0,
-        maxY: _studyChartMaxY(safeValues),
+        maxY: 6,
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -773,13 +597,8 @@ class _StudyLineChart extends StatelessWidget {
               showTitles: true,
               getTitlesWidget: (value, meta) {
                 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                final index = value.toInt();
-                if (index < 0 || index >= days.length) {
-                  return const SizedBox.shrink();
-                }
-
                 return Text(
-                  days[index],
+                  days[value.toInt()],
                   style: const TextStyle(color: Colors.white70, fontSize: 11),
                 );
               },
@@ -805,13 +624,21 @@ class _StudyLineChart extends StatelessWidget {
 }
 
 class _MoodRowCard extends StatelessWidget {
-  final List<String> moodEmojis;
-
-  const _MoodRowCard({required this.moodEmojis});
+  const _MoodRowCard();
 
   @override
   Widget build(BuildContext context) {
-    final moods = _normalizeMoodEmojis(moodEmojis);
+    const moods = ['😊', '😐', '😊', '😊', '☹️', '😐', '😊'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const labels = [
+      'Good',
+      'Neutral',
+      'Good',
+      'Good',
+      'Low',
+      'Neutral',
+      'Good',
+    ];
 
     return _GlassCard(
       child: Column(
@@ -835,7 +662,7 @@ class _MoodRowCard extends StatelessWidget {
                     Text(moods[i], style: const TextStyle(fontSize: 26)),
                     const SizedBox(height: 4),
                     Text(
-                      _weekdayShort(i),
+                      days[i],
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -844,7 +671,7 @@ class _MoodRowCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _moodLabelFromEmoji(moods[i]),
+                      labels[i],
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withAlpha(170),
@@ -863,13 +690,7 @@ class _MoodRowCard extends StatelessWidget {
 }
 
 class _MoodInsightCard extends StatelessWidget {
-  final String moodSummary;
-  final String motivationalMessage;
-
-  const _MoodInsightCard({
-    required this.moodSummary,
-    required this.motivationalMessage,
-  });
+  const _MoodInsightCard();
 
   @override
   Widget build(BuildContext context) {
@@ -901,20 +722,10 @@ class _MoodInsightCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  moodSummary,
+                  "Your mood seems lower on Fridays. A lighter task load or a short break on that day may help you finish the week with less stress.",
                   style: TextStyle(
                     color: Colors.white.withAlpha(220),
                     fontSize: 13,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  motivationalMessage,
-                  style: const TextStyle(
-                    color: Color(0xFFFFD87A),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
                     height: 1.45,
                   ),
                 ),
@@ -925,105 +736,4 @@ class _MoodInsightCard extends StatelessWidget {
       ),
     );
   }
-}
-
-List<double> _normalizeToSeven(List<double> values) {
-  final safe = List<double>.filled(7, 0);
-  for (int i = 0; i < values.length && i < 7; i++) {
-    safe[i] = values[i];
-  }
-  return safe;
-}
-
-List<String> _normalizeMoodEmojis(List<String> values) {
-  final safe = List<String>.filled(7, '😐');
-  for (int i = 0; i < values.length && i < 7; i++) {
-    safe[i] = values[i];
-  }
-  return safe;
-}
-
-double _taskChartMaxY(List<double> values) {
-  double maxValue = 0;
-  for (final v in values) {
-    if (v > maxValue) maxValue = v;
-  }
-
-  if (maxValue <= 0) return 4;
-  return maxValue + 1;
-}
-
-double _studyChartMaxY(List<double> values) {
-  double maxValue = 0;
-  for (final v in values) {
-    if (v > maxValue) maxValue = v;
-  }
-
-  if (maxValue <= 0) return 2;
-  return math.max(2, maxValue + 1);
-}
-
-String _weekdayShort(int index) {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return days[index];
-}
-
-String _weekdayFull(int index) {
-  const days = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  return days[index];
-}
-
-String _moodLabelFromEmoji(String emoji) {
-  switch (emoji) {
-    case '😊':
-      return 'Good';
-    case '☹️':
-      return 'Low';
-    default:
-      return 'Neutral';
-  }
-}
-
-String? _findStrongestDay(WeeklyAnalysisData data) {
-  final task = _normalizeToSeven(data.taskChartValues);
-  final study = _normalizeToSeven(data.studyChartValues);
-
-  double maxTask = 0;
-  double maxStudy = 0;
-
-  for (final v in task) {
-    if (v > maxTask) maxTask = v;
-  }
-
-  for (final v in study) {
-    if (v > maxStudy) maxStudy = v;
-  }
-
-  if (maxTask == 0 && maxStudy == 0) {
-    return null;
-  }
-
-  double bestScore = -1;
-  int bestIndex = 0;
-
-  for (int i = 0; i < 7; i++) {
-    final taskScore = maxTask == 0 ? 0 : task[i] / maxTask;
-    final studyScore = maxStudy == 0 ? 0 : study[i] / maxStudy;
-    final totalScore = taskScore + studyScore;
-
-    if (totalScore > bestScore) {
-      bestScore = totalScore;
-      bestIndex = i;
-    }
-  }
-
-  return _weekdayFull(bestIndex);
 }
