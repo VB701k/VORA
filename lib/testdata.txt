@@ -1,4 +1,4 @@
-# w - working / n - !working / t - temp / m - min / f - fake
+# w - working / n - !working / t - temp / m - min / f - fake / b - bug
 
 login test - w
 signup test -w
@@ -11,3 +11,4 @@ profile page - wm
 
 pomodoro - wm
 cw breakdown - wf
+task manager - w
