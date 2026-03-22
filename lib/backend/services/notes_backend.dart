@@ -621,4 +621,34 @@ class NotesBackend {
 
     await batch.commit();
   }
+
+  Future<void> removeTagEverywhere(String tag) async {
+    final t = tag.trim();
+    if (t.isEmpty) return;
+
+    final snap = await _notesCol.where('tags', arrayContains: t).get();
+    final batch = _db.batch();
+
+    for (final d in snap.docs) {
+      final data = d.data();
+      final tags = List<String>.from(
+        (data['tags'] ?? const <dynamic>[]) as List,
+      );
+
+      final updatedTags = tags.where((x) => x != t).toList()..sort();
+
+      batch.update(d.reference, {
+        'tags': updatedTags,
+        'updatedAt': FieldValue.serverTimestamp(),
+        // update keywords too
+        'keywords': _keywordsFrom(
+          (data['title'] ?? '').toString(),
+          (data['content'] ?? '').toString(),
+          updatedTags,
+        ),
+      });
+    }
+
+    await batch.commit();
+  }
 }
