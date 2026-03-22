@@ -472,7 +472,7 @@ class NotesBackend {
       'uploadedAt': FieldValue.serverTimestamp(),
     });
 
-    await bumpUpdateAt(noteId);
+    await bumpUpdatedAt(noteId);
     return attRef.id;
   }
 
