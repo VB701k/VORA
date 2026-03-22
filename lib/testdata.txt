@@ -1,4 +1,4 @@
-# w - working / n - !working / t - temp / m - min
+# w - working / n - !working / t - temp / m - min / f - fake
 
 login test - w
 signup test -w
@@ -10,3 +10,4 @@ ai page - wt
 profile page - wm
 
 pomodoro - wm
+cw breakdown - wf
