@@ -63,4 +63,16 @@ class StreakService {
       }, SetOptions(merge: true));
     });
   }
+
+  Future<int> getCurrentStreak() async {
+    final doc = await _userRef.get();
+    final data = doc.data() ?? {};
+    return (data['streak'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<int> getLongestStreak() async {
+    final doc = await _userRef.get();
+    final data = doc.data() ?? {};
+    return (data['longestStreak'] as num?)?.toInt() ?? 0;
+  }
 }

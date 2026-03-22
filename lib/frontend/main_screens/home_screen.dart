@@ -10,6 +10,7 @@ import "package:vora/frontend/pages/weekly_analysis_screen.dart";
 // ✅ IMPORTANT: make sure your Quotes service file name & class match.
 // If your file is quotes_services.dart, keep it like this:
 import "package:vora/backend/services/quotes_services.dart";
+import "package:vora/backend/services/streak_services.dart";
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
