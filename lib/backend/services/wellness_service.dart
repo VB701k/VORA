@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../models/wellness_mood_entry.dart';
 import '../models/breathing_session_entry.dart';
 
@@ -11,27 +10,31 @@ class WellnessService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String get _uid {
-    final user = _auth.currentUser;
-    if (user == null) {
-      throw Exception('User not logged in');
-    }
-    return user.uid;
+  String? get _uid {
+    return _auth.currentUser?.uid;
   }
 
-  CollectionReference<Map<String, dynamic>> get _moodsRef {
+  bool get isAuthenticated => _uid != null;
+
+  CollectionReference<Map<String, dynamic>>? get _moodsRef {
+    final uid = _uid;
+    if (uid == null) return null;
+
     return _firestore
         .collection('users')
-        .doc(_uid)
+        .doc(uid)
         .collection('wellness')
         .doc('tracker')
         .collection('moods');
   }
 
-  CollectionReference<Map<String, dynamic>> get _breathingRef {
+  CollectionReference<Map<String, dynamic>>? get _breathingRef {
+    final uid = _uid;
+    if (uid == null) return null;
+
     return _firestore
         .collection('users')
-        .doc(_uid)
+        .doc(uid)
         .collection('wellness')
         .doc('tracker')
         .collection('breathing_sessions');
@@ -52,10 +55,13 @@ class WellnessService {
     required DateTime date,
     required String mood,
   }) async {
+    final ref = _moodsRef;
+    if (ref == null) throw Exception('User not authenticated');
+
     final normalized = normalizeDate(date);
     final docId = _dateKey(normalized);
 
-    await _moodsRef.doc(docId).set({
+    await ref.doc(docId).set({
       'mood': mood,
       'date': Timestamp.fromDate(normalized),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -63,24 +69,31 @@ class WellnessService {
   }
 
   Future<WellnessMoodEntry?> getMoodForDate(DateTime date) async {
+    final ref = _moodsRef;
+    if (ref == null) throw Exception('User not authenticated');
+
     final normalized = normalizeDate(date);
     final docId = _dateKey(normalized);
 
-    final doc = await _moodsRef.doc(docId).get();
+    final doc = await ref.doc(docId).get();
     if (!doc.exists) return null;
 
     return WellnessMoodEntry.fromDoc(doc);
   }
 
   Future<List<WellnessMoodEntry>> getMoodHistory() async {
-    final snapshot = await _moodsRef.orderBy('date', descending: true).get();
+    final ref = _moodsRef;
+    if (ref == null) throw Exception('User not authenticated');
+
+    final snapshot = await ref.orderBy('date', descending: true).get();
     return snapshot.docs.map((doc) => WellnessMoodEntry.fromDoc(doc)).toList();
   }
 
   Stream<List<WellnessMoodEntry>> streamMoodHistory() {
-    return _moodsRef.orderBy('date', descending: true).snapshots().map((
-      snapshot,
-    ) {
+    final ref = _moodsRef;
+    if (ref == null) return Stream.error('User not authenticated');
+
+    return ref.orderBy('date', descending: true).snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => WellnessMoodEntry.fromDoc(doc))
           .toList();
@@ -93,9 +106,12 @@ class WellnessService {
     required int phaseSeconds,
     required bool soundOn,
   }) async {
+    final ref = _breathingRef;
+    if (ref == null) throw Exception('User not authenticated');
+
     final durationSeconds = totalCycles * 4 * phaseSeconds;
 
-    await _breathingRef.add({
+    await ref.add({
       'exerciseType': 'box_breathing',
       'totalCycles': totalCycles,
       'completedCycles': completedCycles,
@@ -107,9 +123,10 @@ class WellnessService {
   }
 
   Future<List<BreathingSessionEntry>> getBreathingHistory() async {
-    final snapshot = await _breathingRef
-        .orderBy('completedAt', descending: true)
-        .get();
+    final ref = _breathingRef;
+    if (ref == null) throw Exception('User not authenticated');
+
+    final snapshot = await ref.orderBy('completedAt', descending: true).get();
 
     return snapshot.docs
         .map((doc) => BreathingSessionEntry.fromDoc(doc))
@@ -117,13 +134,15 @@ class WellnessService {
   }
 
   Stream<List<BreathingSessionEntry>> streamBreathingHistory() {
-    return _breathingRef
-        .orderBy('completedAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => BreathingSessionEntry.fromDoc(doc))
-              .toList();
-        });
+    final ref = _breathingRef;
+    if (ref == null) return Stream.error('User not authenticated');
+
+    return ref.orderBy('completedAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) => BreathingSessionEntry.fromDoc(doc))
+          .toList();
+    });
   }
 }
