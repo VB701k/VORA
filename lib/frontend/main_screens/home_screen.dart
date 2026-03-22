@@ -7,6 +7,10 @@ import "package:vora/frontend/main_screens/notes.dart";
 import "package:vora/frontend/pages/calendar_screen.dart";
 import "package:vora/frontend/pages/weekly_analysis_screen.dart";
 
+// ✅ IMPORTANT: make sure your Quotes service file name & class match.
+// If your file is quotes_services.dart, keep it like this:
+import "package:vora/backend/services/quotes_services.dart";
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -33,7 +37,7 @@ class HomeScreen extends StatelessWidget {
               _buildTopBar(),
               const SizedBox(height: 26),
 
-              _buildHeroCard(),
+              _buildHeroCard(), // ✅ now shows Firebase quote
               const SizedBox(height: 28),
 
               _buildSectionTitle("QUICK ACCESS"),
@@ -112,6 +116,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  /// ✅ Motivation card (shows quote from Firebase)
   Widget _buildHeroCard() {
     return Container(
       width: double.infinity,
@@ -148,24 +153,94 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Stay focused today",
-                  style: TextStyle(
-                    color: text,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Open your tools quickly and keep your study flow going.",
-                  style: TextStyle(color: textDim, fontSize: 13, height: 1.4),
-                ),
-              ],
+
+          // ✅ Quote text from Firebase (no hardcoded quote)
+          Expanded(
+            child: FutureBuilder<Map<String, dynamic>?>(
+              // ✅ This must exist in your quotes service
+              future: QuotesService.instance.getRandomQuote(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Loading motivation…",
+                        style: TextStyle(
+                          color: text,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "Open your tools quickly and keep your study flow going.",
+                        style: TextStyle(
+                          color: textDim,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                final q = snap.data;
+                final quoteText = (q?['text'] ?? 'Stay consistent today ✨')
+                    .toString();
+                final author = (q?['author'] ?? 'Unknown').toString();
+                final category = (q?['category'] ?? 'Motivation').toString();
+                if (q == null) {
+                  return const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Stay consistent today ✨",
+                        style: TextStyle(
+                          color: text,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "Add some quotes in Firestore → quotes collection.",
+                        style: TextStyle(
+                          color: textDim,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '"${q['text'] ?? ''}"',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "— ${q['author'] ?? 'Unknown'} • ${q['category'] ?? 'Motivation'}",
+                      style: const TextStyle(
+                        color: textDim,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -202,7 +277,6 @@ class HomeScreen extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (_) => const StudyNotesScreen()),
             );
-            //  navigate to Notes
           },
         ),
         _QuickTile(
@@ -216,7 +290,6 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
-
         _QuickTile(
           title: "Mental Wellness",
           subtitle: "Relax your mind",
@@ -228,7 +301,6 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
-
         _QuickTile(
           title: "Weekly Analytics",
           subtitle: "Track your progress",
