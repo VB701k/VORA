@@ -537,4 +537,19 @@ class NotesBackend {
       noteId,
     ).set({'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
   }
+
+  Future<void> restoreAllFromTrash() async {
+    final snap = await _notesCol.where('isDeleted', isEqualTo: true).get();
+    final batch = _db.batch();
+
+    for (final d in snap.docs) {
+      batch.update(d.reference, {
+        'isDeleted': false,
+        'deletedAt': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+  }
 }
