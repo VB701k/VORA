@@ -4,3 +4,4 @@ foget pass - w
 home page - w
 search page - w
 ai page - wt
+profile page - wm
