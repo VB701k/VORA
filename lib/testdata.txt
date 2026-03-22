@@ -1,3 +1,5 @@
+# w - working / n - !working / t - temp / m - min
+
 login test - w
 signup test -w
 foget pass - w
